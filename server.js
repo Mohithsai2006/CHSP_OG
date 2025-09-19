@@ -6,40 +6,40 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*', // Allow your Vercel app's URL
+    origin: '*', // Update to your Vercel URL in production
     methods: ['GET', 'POST'],
   },
 });
 
-const rooms = new Map(); // Store room data: { roomId: { players: [], state: {} } }
+const rooms = new Map(); // { roomId: { players: [socketIds], state: { p1: null, p2: null } } }
 
 io.on('connection', (socket) => {
   console.log(`Player connected: ${socket.id}`);
 
-  // Create a new room
+  // Create room
   socket.on('createRoom', (callback) => {
     const roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
-    rooms.set(roomId, { players: [socket.id], state: { p1: null, p2: null, gameStarted: false } });
+    rooms.set(roomId, { players: [socket.id], state: { p1: null, p2: null } });
     socket.join(roomId);
     socket.emit('roomCreated', roomId);
-    callback(roomId);
+    if (callback) callback(roomId);
   });
 
-  // Join an existing room
+  // Join room
   socket.on('joinRoom', (roomId, callback) => {
     const room = rooms.get(roomId);
     if (!room) {
-      callback({ success: false, message: 'Room not found' });
+      if (callback) callback({ success: false, message: 'Room not found' });
       return;
     }
     if (room.players.length >= 2) {
-      callback({ success: false, message: 'Room is full' });
+      if (callback) callback({ success: false, message: 'Room is full' });
       return;
     }
     room.players.push(socket.id);
     socket.join(roomId);
-    socket.to(roomId).emit('playerJoined', socket.id);
-    callback({ success: true, roomId });
+    socket.to(roomId).emit('playerJoined');
+    if (callback) callback({ success: true, roomId });
   });
 
   // Character selection
@@ -52,37 +52,53 @@ io.on('connection', (socket) => {
       room.state.p2 = characterId;
     }
     io.to(roomId).emit('updateSelections', room.state);
-    if (room.state.p1 && room.state.p2) {
-      room.state.gameStarted = true;
-      io.to(roomId).emit('startGame', room.state);
-    }
   });
 
-  // Player input
+  // Host starts game
+  socket.on('startGame', ({ roomId }) => {
+    const room = rooms.get(roomId);
+    if (!room || socket.id !== room.players[0]) return; // Only host
+    io.to(roomId).emit('gameStarted', room.state);
+  });
+
+  // Player input sync
   socket.on('playerInput', ({ roomId, playerId, input }) => {
-    const room = rooms.get(roomId);
-    if (!room) return;
-    io.to(roomId).emit('playerInput', { playerId, input });
+    socket.to(roomId).emit('playerInput', { playerId, input });
   });
 
-  // Game state sync
+  // State sync
   socket.on('syncState', ({ roomId, state }) => {
-    const room = rooms.get(roomId);
-    if (!room) return;
-    room.state = state;
     socket.to(roomId).emit('updateState', state);
   });
 
-  // Handle disconnection
+  // Game ended
+  socket.on('gameEnded', ({ roomId, winner }) => {
+    io.to(roomId).emit('gameEnded', { winner });
+  });
+
+  // Leave room (on disconnect or quit)
+  socket.on('leaveRoom', (roomId) => {
+    const room = rooms.get(roomId);
+    if (room) {
+      room.players = room.players.filter(id => id !== socket.id);
+      if (room.players.length === 0) {
+        rooms.delete(roomId);
+      } else {
+        io.to(roomId).emit('playerLeft');
+      }
+    }
+  });
+
+  // Disconnect
   socket.on('disconnect', () => {
     console.log(`Player disconnected: ${socket.id}`);
     for (const [roomId, room] of rooms) {
       if (room.players.includes(socket.id)) {
-        room.players = room.players.filter((id) => id !== socket.id);
+        room.players = room.players.filter(id => id !== socket.id);
         if (room.players.length === 0) {
           rooms.delete(roomId);
         } else {
-          io.to(roomId).emit('playerLeft', socket.id);
+          io.to(roomId).emit('playerLeft');
         }
         break;
       }

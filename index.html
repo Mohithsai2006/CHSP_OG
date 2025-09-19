@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Clash_Heroes_Showdown_Play v2.1 (CHSP)</title>
+  <title>Clash_Heroes_Showdown_Play v2.2 (CHSP)</title>
   <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
   <style>
     :root{--bg:#0f1226;--card:#171a37;--text:#eaf0ff;--muted:#aab8ff;--accent:#7cf2c8;--accent2:#ffd166;--danger:#ff6b6b}
@@ -51,12 +51,31 @@
     tbody tr td:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
     input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.2);color:var(--text)}
     label{font-size:13px;color:#c9d4ff}
+    #gameOverOverlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.8);
+      z-index: 100;
+      color: white;
+      text-align: center;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+    }
+    #gameOverOverlay h1 { font-size: 48px; margin: 20px; animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+    #gameOverOverlay .btn { margin: 10px; padding: 15px 30px; font-size: 18px; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="bar">
-      <div class="title">🎮 Clash_Heroes_Showdown_Play <span class="pill">v2.1</span></div>
+      <div class="title">🎮 Clash_Heroes_Showdown_Play <span class="pill">v2.2</span></div>
       <div class="row">
         <button class="btn ghost" id="backBtn" title="Go Back">⟵ Back</button>
         <button class="btn ghost" id="homeBtn" title="Home">🏠 Home</button>
@@ -65,7 +84,7 @@
 
     <!-- HOME -->
     <section id="screen-home" class="menu active">
-      <p class="subtitle">A Multiplayer-Game created by: <span class="hl">CHSP</span>.<br>Play online with another player by creating or joining a room.<br>Flow: <strong>Home → Create/Join Room → Main Menu → Start Game → Modes → VS Mode → Character Select → Play</strong><br>(!STILL UNDER DEVELOPMENT!)<br>Contact: <span class="hl">ganguuleader@gmail.com</span></p>
+      <p class="subtitle">A Multiplayer-Game created by: <span class="hl">CHSP</span>.<br>Play online with another player by creating or joining a room.<br>Flow: <strong>Home → Create/Join Room → Auto to Character Select (when both ready) → Host Starts Game → Play → Victory Screen</strong><br>(!STILL UNDER DEVELOPMENT!)<br>Contact: <span class="hl">ganguuleader@gmail.com</span></p>
       <div class="grid cols-2">
         <div class="card">
           <div class="title">Home</div>
@@ -80,7 +99,8 @@
           <div class="title">Details</div>
           <ul class="subtitle">
             <li>Online play requires two players in a room.</li>
-            <li>Change key settings in Key Settings.</li>
+            <li>Host (room creator) starts the game.</li>
+            <li>After win, celebrate and choose new match or quit.</li>
             <li>Game supports 6 characters.</li>
             <li><strong>ENJOY CLASHING!</strong></li>
           </ul>
@@ -93,12 +113,13 @@
       <div class="title">Create or Join Room</div>
       <div class="grid cols-2">
         <div class="card">
-          <div class="title">Create Room</div>
+          <div class="title">Create Room (Host)</div>
           <button class="btn primary" id="createRoomBtn">Create New Room</button>
-          <p class="subtitle" id="roomIdDisplay">Room ID: None</p>
+          <p class="subtitle" id="roomIdDisplay">Room ID: None - Waiting...</p>
+          <p class="subtitle muted" id="roomStatus">Click to create and share ID with friend.</p>
         </div>
         <div class="card">
-          <div class="title">Join Room</div>
+          <div class="title">Join Room (Guest)</div>
           <form id="joinRoomForm">
             <label>Room ID <input name="roomId" placeholder="Enter Room ID (e.g., ABC123)" maxlength="6"></label>
             <button class="btn primary" type="submit">Join Room</button>
@@ -121,8 +142,8 @@
           </div>
         </div>
         <div class="card">
-          <div class="title">Tip</div>
-          <p>Use <span class="pill">Back</span> or <span class="pill">Home</span> anytime.</p>
+          <div class="title">Status</div>
+          <p id="connectionStatus" class="subtitle">Connected. Waiting for opponent...</p>
         </div>
       </div>
     </section>
@@ -139,7 +160,7 @@
         </div>
         <div class="card">
           <div class="title">About VS</div>
-          <p>Pick characters for both sides and duel on floating platforms.</p>
+          <p>Pick characters for both sides and duel on floating platforms. Host starts after selections.</p>
         </div>
       </div>
     </section>
@@ -150,20 +171,20 @@
       <div class="two-pane">
         <div class="card" id="p1Pane">
           <div class="row" style="justify-content:space-between">
-            <div class="subtitle">Player 1</div>
+            <div class="subtitle">Player 1 (Host)</div>
             <span class="pill" id="p1ChoiceLabel">None</span>
           </div>
           <div class="grid cols-2" id="p1CharGrid"></div>
         </div>
         <div class="divider">
           <div class="play-pod">
-            <button class="btn primary" id="playBtn" disabled>▶ Play</button>
+            <button class="btn primary" id="playBtn" disabled>▶ Start Game (Host Only)</button>
             <button class="btn" data-nav="modes">⟵ Back to Modes</button>
           </div>
         </div>
         <div class="card" id="p2Pane">
           <div class="row" style="justify-content:space-between">
-            <div class="subtitle">Player 2</div>
+            <div class="subtitle">Player 2 (Guest)</div>
             <span class="pill" id="p2ChoiceLabel">None</span>
           </div>
           <div class="grid cols-2" id="p2CharGrid"></div>
@@ -233,16 +254,23 @@
     </section>
 
     <!-- GAME STAGE -->
-    <section id="screen-stage" class="stage-wrap">
+    <section id="screen-stage" class="stage-wrap" style="position: relative;">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
         <div class="pill" id="hudP1">P1</div>
         <div class="row" style="gap:6px">
           <button class="btn" id="restartBtn">↻ Restart</button>
-          <button class="btn warn" data-nav="vs-select">⟵ Exit to Select</button>
+          <button class="btn warn" id="exitToSelectBtn">⟵ Exit to Select</button>
         </div>
         <div class="pill" id="hudP2">P2</div>
       </div>
       <canvas id="gameCanvas" width="1000" height="540"></canvas>
+      <div id="gameOverOverlay">
+        <h1 id="winnerText">PLAYER 1 WINS! 🎉</h1>
+        <div class="row">
+          <button class="btn primary" id="newMatchBtn">New Match</button>
+          <button class="btn warn" id="quitBtn">Quit</button>
+        </div>
+      </div>
     </section>
 
   </div>
@@ -251,13 +279,15 @@
     /********************
      * Socket.IO Setup  *
      ********************/
-    const socket = io('https://chsp-og.onrender.com/'); // Replace with your Socket.IO server URL (e.g., https://your-socket-server.onrender.com)
+    const socket = io('YOUR_SOCKET_SERVER_URL'); // Replace with your Socket.IO server URL
     let currentRoomId = null;
     let playerId = null;
     let isPlayer1 = false;
+    let gameInProgress = false;
 
     socket.on('connect', () => {
       playerId = socket.id;
+      updateStatus('Connected to server.');
     });
 
     /********************
@@ -266,15 +296,27 @@
     const createRoomBtn = document.getElementById('createRoomBtn');
     const joinRoomForm = document.getElementById('joinRoomForm');
     const roomIdDisplay = document.getElementById('roomIdDisplay');
+    const roomStatus = document.getElementById('roomStatus');
     const joinStatus = document.getElementById('joinStatus');
+    const connectionStatus = document.getElementById('connectionStatus');
+
+    function lockRoomScreen() {
+      if (createRoomBtn) createRoomBtn.disabled = true;
+      joinRoomForm.style.display = 'none';
+      document.querySelector('#screen-room .btn.primary[type="submit"]').disabled = true;
+    }
 
     if (createRoomBtn) {
       createRoomBtn.onclick = () => {
+        createRoomBtn.disabled = true;
         socket.emit('createRoom', (roomId) => {
           currentRoomId = roomId;
           isPlayer1 = true;
           roomIdDisplay.textContent = `Room ID: ${roomId}`;
+          roomStatus.textContent = 'Room created! Share this ID with your friend. Waiting for them to join...';
+          updateStatus(`Room ${roomId} created. Waiting for opponent.`);
           show('main');
+          lockRoomScreen();
         });
       };
     }
@@ -283,27 +325,41 @@
       joinRoomForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const roomId = joinRoomForm.roomId.value.trim().toUpperCase();
+        if (!roomId) return;
+        joinRoomForm.querySelector('button[type="submit"]').disabled = true;
         socket.emit('joinRoom', roomId, ({ success, message, roomId: joinedRoomId }) => {
           if (success) {
             currentRoomId = joinedRoomId;
             isPlayer1 = false;
-            joinStatus.textContent = `Joined room ${roomId}`;
+            joinStatus.textContent = `Joined room ${roomId}! Redirecting...`;
+            updateStatus(`Joined room ${roomId}. Waiting for selections.`);
             show('main');
+            lockRoomScreen();
           } else {
             joinStatus.textContent = message || 'Failed to join room';
+            joinRoomForm.querySelector('button[type="submit"]').disabled = false;
           }
         });
       });
     }
 
+    function updateStatus(msg) {
+      if (connectionStatus) connectionStatus.textContent = msg;
+    }
+
     socket.on('playerJoined', () => {
-      alert('Another player has joined the room!');
+      updateStatus('Opponent joined! Starting character selection...');
+      show('vs-select');
+      renderSelectGrid(p1Grid, 'p1');
+      renderSelectGrid(p2Grid, 'p2');
+      updateSelections();
     });
 
     socket.on('playerLeft', () => {
-      alert('The other player has left the room.');
-      show('home');
+      alert('Opponent left the room. Returning to home.');
       currentRoomId = null;
+      show('home');
+      updateStatus('Disconnected from room.');
     });
 
     /********************
@@ -325,7 +381,7 @@
       for (const k in screens) { screens[k].classList.remove('active'); }
       if (name === 'stage') { screens.stage.classList.add('active'); }
       else { screens[name].classList.add('active'); }
-      if (name !== 'home') historyStack.push(name);
+      if (name !== 'home' && name !== 'vs-select') historyStack.push(name);
       updateBackBtn();
       if (name === 'vsSelect') {
         renderSelectGrid(p1Grid, 'p1');
@@ -333,20 +389,25 @@
         updateSelections();
       }
     }
-    function updateBackBtn() { document.getElementById('backBtn').disabled = historyStack.length === 0; }
+    function updateBackBtn() { 
+      const backBtn = document.getElementById('backBtn');
+      if (backBtn) backBtn.disabled = historyStack.length === 0 || gameInProgress;
+    }
     document.getElementById('homeBtn').onclick = () => {
       historyStack.length = 0;
-      show('home');
       currentRoomId = null;
-      socket.emit('leaveRoom', currentRoomId);
+      socket.disconnect();
+      show('home');
     };
     document.getElementById('backBtn').onclick = () => {
+      if (gameInProgress) return; // Prevent back during game
       historyStack.pop();
-      const prev = historyStack.pop();
-      show(prev || 'home');
+      const prev = historyStack[historyStack.length - 1] || 'home';
+      show(prev);
     };
     document.querySelectorAll('[data-nav]').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (gameInProgress) return;
         const target = btn.getAttribute('data-nav');
         const map = { main: 'main', keys: 'keys', characters: 'characters', guide: 'guide', modes: 'modes', 'vs-select': 'vsSelect', room: 'room' };
         show(map[target] || 'home');
@@ -397,6 +458,8 @@
             selected[side] = ch.id;
             socket.emit('selectCharacter', { roomId: currentRoomId, playerId, characterId: ch.id });
             updateSelections();
+          } else {
+            alert('You can only select for your side!');
           }
         };
         gridEl.appendChild(card);
@@ -406,9 +469,12 @@
     function updateSelections() {
       if (p1Grid) { [...p1Grid.children].forEach(el => el.classList.toggle('selected', el.dataset.id === selected.p1)); }
       if (p2Grid) { [...p2Grid.children].forEach(el => el.classList.toggle('selected', el.dataset.id === selected.p2)); }
-      if (p1Label) p1Label.textContent = selected.p1 ? CHARACTERS.find(c => c.id === selected.p1).name : 'None';
-      if (p2Label) p2Label.textContent = selected.p2 ? CHARACTERS.find(c => c.id === selected.p2).name : 'None';
-      if (playBtn) playBtn.disabled = !(selected.p1 && selected.p2);
+      if (p1Label) p1Label.textContent = selected.p1 ? CHARACTERS.find(c => c.id === selected.p1)?.name || 'None' : 'None';
+      if (p2Label) p2Label.textContent = selected.p2 ? CHARACTERS.find(c => c.id === selected.p2)?.name || 'None' : 'None';
+      if (playBtn) {
+        playBtn.disabled = !(selected.p1 && selected.p2 && isPlayer1); // Only host can start
+        playBtn.textContent = isPlayer1 ? '▶ Start Game (Host Only)' : 'Waiting for host...';
+      }
     }
 
     socket.on('updateSelections', (state) => {
@@ -417,7 +483,17 @@
       updateSelections();
     });
 
-    socket.on('startGame', (state) => {
+    if (playBtn) {
+      playBtn.onclick = () => {
+        if (!selected.p1 || !selected.p2 || !isPlayer1) {
+          alert('Host must wait for both selections.');
+          return;
+        }
+        socket.emit('startGame', { roomId: currentRoomId });
+      };
+    }
+
+    socket.on('gameStarted', (state) => {
       selected.p1 = state.p1;
       selected.p2 = state.p2;
       startMatch(state.p1, state.p2);
@@ -473,7 +549,7 @@
         saveKeys(cfg);
         alert('Keys saved!');
       });
-      resetBtn && resetBtn.addEventListener('click', () => {
+      if (resetBtn) resetBtn.addEventListener('click', () => {
         saveKeys(DEFAULT_KEYS);
         fillForm();
         alert('Reset to defaults.');
@@ -530,6 +606,7 @@
         this._stationary = false;
         this._activeIntervals = [];
       }
+      // ... (keep all existing Player methods: facing, currentSpeed, getAmmoCap, isReloading, isStationary, opponentWithin2Heights, draw, moveLeft, moveRight, jump, down, attack, useSpecial, update, applyFreeze, applyPoisonerOverTime, drawArrows, cleanupTimers, remaining)
       facing() { return this.direction === 1 ? '→' : '←'; }
       currentSpeed() {
         let s = (Date.now() < this.speedBoostEnd) ? this.baseSpeed * 2 : this.baseSpeed;
@@ -622,8 +699,8 @@
             if (this.role === 'Archer') { dmg = 20; speed = 25; flags.super = true; }
             if (this.role === 'Icezzy') { dmg = 10; speed = 7; flags.freeze = true; flags.super = true; }
             if (this.role === 'Poisoner') { dmg = 10; flags.PoisonerSpecial = true; flags.super = true; }
-            if (this.role === 'Healer') { /* Healer special is HOT, handled by useSpecial */ }
-            if (this.role === 'NightGhost') { /* domain handled by useSpecial */ }
+            if (this.role === 'Healer') { /* handled in useSpecial */ }
+            if (this.role === 'NightGhost') { /* handled in useSpecial */ }
           }
           const projColor = (this.role === 'NightGhost') ? '#16a085' : (flags.PoisonerSpecial ? 'darkgreen' : (flags.freeze ? 'deepskyblue' : (this.role === 'Healer' ? '#b084f5' : 'brown')));
           const proj = { x: this.x + (this.direction === 1 ? this.width : -14), y: this.y + this.height / 2, width: 14, height: 5, speed: this.direction * speed, damage: dmg, color: projColor, Healer: (this.role === 'Healer'), freeze: flags.freeze, PoisonerSpecial: flags.PoisonerSpecial, super: !!flags.super };
@@ -794,6 +871,7 @@
     }
 
     function checkCollisions(p1, p2) {
+      // Arrow vs Arrow
       for (let i = p1.arrows.length - 1; i >= 0; i--) {
         const a1 = p1.arrows[i];
         for (let j = p2.arrows.length - 1; j >= 0; j--) {
@@ -808,6 +886,7 @@
           }
         }
       }
+      // Slashes
       for (let k = slashes.length - 1; k >= 0; k--) {
         const s = slashes[k];
         const now = Date.now();
@@ -836,72 +915,77 @@
           slashes.splice(k, 1);
         }
       }
+      // p1 arrows hit p2
       for (let ai = p1.arrows.length - 1; ai >= 0; ai--) {
         const a = p1.arrows[ai];
         if (a.x < p2.x + p2.width && a.x + a.width > p2.x && a.y < p2.y + p2.height && a.y + a.height > p2.y) {
-          if (p2.role === 'NightGhost' && p2.isStationary() && isNight()) {
-            continue;
+          if (p2.role === 'NightGhost' && p2.isStationary() && isNight()) continue;
+          const defendingFront = p2.isDefending && ((p2.direction === 1 && a.speed < 0) || (p2.direction === -1 && a.speed > 0));
+          if (a.super) {
+            p2.health -= a.damage;
+            if (a.freeze) p2.applyFreeze();
+            if (a.PoisonerSpecial) p2.applyPoisonerOverTime(10, 15000);
+            hitSpark(p2.x + p2.width / 2, p2.y + p2.height / 2);
+            p1.arrows.splice(ai, 1);
           } else {
-            const defendingFront = p2.isDefending && ((p2.direction === 1 && a.speed < 0) || (p2.direction === -1 && a.speed > 0));
-            if (a.super) {
-              p2.health -= a.damage;
-              if (a.freeze) p2.applyFreeze();
-              if (a.PoisonerSpecial) p2.applyPoisonerOverTime(10, 15000);
-              hitSpark(p2.x + p2.width / 2, p2.y + p2.height / 2);
-              p1.arrows.splice(ai, 1);
-            } else {
-              p2.health -= defendingFront ? 1 : a.damage;
-              if (a.freeze) p2.applyFreeze();
-              if (a.PoisonerSpecial) p2.applyPoisonerOverTime(10, 15000);
-              hitSpark(p2.x + p2.width / 2, p2.y + p2.height / 2);
-              p1.arrows.splice(ai, 1);
-            }
+            p2.health -= defendingFront ? 1 : a.damage;
+            if (a.freeze) p2.applyFreeze();
+            if (a.PoisonerSpecial) p2.applyPoisonerOverTime(10, 15000);
+            hitSpark(p2.x + p2.width / 2, p2.y + p2.height / 2);
+            p1.arrows.splice(ai, 1);
           }
         }
       }
+      // p2 arrows hit p1
       for (let ai = p2.arrows.length - 1; ai >= 0; ai--) {
         const a = p2.arrows[ai];
         if (a.x < p1.x + p1.width && a.x + a.width > p1.x && a.y < p1.y + p1.height && a.y + a.height > p1.y) {
-          if (p1.role === 'NightGhost' && p1.isStationary() && isNight()) {
-            continue;
+          if (p1.role === 'NightGhost' && p1.isStationary() && isNight()) continue;
+          const defendingFront = p1.isDefending && ((p1.direction === 1 && a.speed < 0) || (p1.direction === -1 && a.speed > 0));
+          if (a.super) {
+            p1.health -= a.damage;
+            if (a.freeze) p1.applyFreeze();
+            if (a.PoisonerSpecial) p1.applyPoisonerOverTime(10, 15000);
+            hitSpark(p1.x + p1.width / 2, p1.y + p1.height / 2);
+            p2.arrows.splice(ai, 1);
           } else {
-            const defendingFront = p1.isDefending && ((p1.direction === 1 && a.speed < 0) || (p1.direction === -1 && a.speed > 0));
-            if (a.super) {
-              p1.health -= a.damage;
-              if (a.freeze) p1.applyFreeze();
-              if (a.PoisonerSpecial) p1.applyPoisonerOverTime(10, 15000);
-              hitSpark(p1.x + p1.width / 2, p1.y + p1.height / 2);
-              p2.arrows.splice(ai, 1);
-            } else {
-              p1.health -= defendingFront ? 1 : a.damage;
-              if (a.freeze) p1.applyFreeze();
-              if (a.PoisonerSpecial) p1.applyPoisonerOverTime(10, 15000);
-              hitSpark(p1.x + p1.width / 2, p1.y + p1.height / 2);
-              p2.arrows.splice(ai, 1);
-            }
+            p1.health -= defendingFront ? 1 : a.damage;
+            if (a.freeze) p1.applyFreeze();
+            if (a.PoisonerSpecial) p1.applyPoisonerOverTime(10, 15000);
+            hitSpark(p1.x + p1.width / 2, p1.y + p1.height / 2);
+            p2.arrows.splice(ai, 1);
           }
         }
       }
     }
 
     const keysDown = {};
+    let inputDisabled = false;
     window.addEventListener('keydown', e => {
+      if (inputDisabled) return;
       const key = e.key.toLowerCase();
       keysDown[key] = true;
-      if (currentRoomId && player1 && player2) {
+      if (currentRoomId && player1 && player2 && gameInProgress) {
         socket.emit('playerInput', { roomId: currentRoomId, playerId, input: { key, down: true } });
       }
     });
     window.addEventListener('keyup', e => {
+      if (inputDisabled) return;
       const key = e.key.toLowerCase();
       keysDown[key] = false;
-      if (currentRoomId && player1 && player2) {
+      if (currentRoomId && player1 && player2 && gameInProgress) {
         socket.emit('playerInput', { roomId: currentRoomId, playerId, input: { key, down: false } });
       }
     });
 
     const hudP1 = document.getElementById('hudP1');
     const hudP2 = document.getElementById('hudP2');
+    const gameOverOverlay = document.getElementById('gameOverOverlay');
+    const winnerText = document.getElementById('winnerText');
+    const newMatchBtn = document.getElementById('newMatchBtn');
+    const quitBtn = document.getElementById('quitBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const exitToSelectBtn = document.getElementById('exitToSelectBtn');
 
     let player1, player2, animId = null;
     function cleanupMatch() {
@@ -910,6 +994,9 @@
       if (player2) player2.cleanupTimers();
       slashes.length = 0;
       sparks.length = 0;
+      nightUntil = 0;
+      gameInProgress = false;
+      inputDisabled = false;
     }
 
     function startMatch(p1CharId, p2CharId) {
@@ -921,13 +1008,34 @@
       player2 = new Player(canvas.width - 160, c2, isPlayer1 ? k.p2 : k.p1);
       hudP1.textContent = `P1: ${c1.name}`;
       hudP2.textContent = `P2: ${c2.name}`;
-      nightUntil = 0;
-      cancelAnimationFrame(animId);
+      gameInProgress = true;
+      inputDisabled = false;
       show('stage');
       gameLoop();
     }
 
+    function restartMatch() {
+      gameOverOverlay.style.display = 'none';
+      inputDisabled = false;
+      startMatch(selected.p1, selected.p2);
+    }
+
+    function quitToHome() {
+      gameOverOverlay.style.display = 'none';
+      cleanupMatch();
+      show('home');
+      currentRoomId = null;
+      socket.emit('leaveRoom', currentRoomId);
+      updateStatus('Game ended. Back to home.');
+    }
+
+    if (newMatchBtn) newMatchBtn.onclick = restartMatch;
+    if (quitBtn) quitBtn.onclick = quitToHome;
+    if (restartBtn) restartBtn.onclick = () => { cleanupMatch(); startMatch(selected.p1, selected.p2); };
+    if (exitToSelectBtn) exitToSelectBtn.onclick = () => { cleanupMatch(); show('vs-select'); };
+
     function handlePlayerControls(p, who, opponent) {
+      if (inputDisabled) return;
       const kc = p.controls;
       p.isDefending = !!keysDown[kc.defence];
       if (keysDown[kc.left]) p.moveLeft();
@@ -945,7 +1053,7 @@
     }
 
     socket.on('playerInput', ({ playerId: senderId, input }) => {
-      if (senderId !== playerId) {
+      if (senderId !== playerId && gameInProgress) {
         const opponent = isPlayer1 ? player2 : player1;
         if (opponent) {
           keysDown[input.key] = input.down;
@@ -972,7 +1080,7 @@
         if (now < p.speedBoostEnd) lines.push({ txt: `Speed ${Math.ceil((p.speedBoostEnd - now) / 1000)}s`, color: 'orange' });
         if (now < p.specialCooldownEnd) lines.push({ txt: `CD ${Math.ceil((p.specialCooldownEnd - now) / 1000)}s`, color: 'rgba(255,255,255,.9)' });
       }
-      if (p.PoisonerEndTime && now < p.PoisonerEndTime) lines.push({ txt: `Poisoner ${Math.ceil((p.PoisonerEndTime - now) / 1000)}s`, color: 'darkgreen' });
+      if (p.PoisonerEndTime && now < p.PoisonerEndTime) lines.push({ txt: `Poison ${Math.ceil((p.PoisonerEndTime - now) / 1000)}s`, color: 'darkgreen' });
       for (let i = 0; i < lines.length; i++) {
         const LY = y - i * 16;
         const txt = lines[i].txt;
@@ -1006,7 +1114,11 @@
       player1._frameStartY = player1.y;
       player2._frameStartX = player2.x;
       player2._frameStartY = player2.y;
-      handlePlayerControls(isPlayer1 ? player1 : player2, isPlayer1 ? 'p1' : 'p2', isPlayer1 ? player2 : player1);
+      if (isPlayer1) {
+        handlePlayerControls(player1, 'p1', player2);
+      } else {
+        handlePlayerControls(player2, 'p2', player1);
+      }
       player1.update();
       player2.update();
       checkCollisions(player1, player2);
@@ -1020,23 +1132,13 @@
       drawPowerHUD(player2);
 
       if (player1.health <= 0 || player2.health <= 0) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const boxWidth = 400;
-        const boxHeight = 140;
-        const boxX = (canvas.width - boxWidth) / 2;
-        const boxY = (canvas.height - boxHeight) / 2;
-        ctx.fillStyle = '#222';
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 3;
-        roundRect(ctx, boxX, boxY, boxWidth, boxHeight, 20, true, true);
+        gameInProgress = false;
+        inputDisabled = true;
         const winner = player1.health <= 0 ? 'PLAYER 2 WINS!' : 'PLAYER 1 WINS!';
-        ctx.fillStyle = '#f1c40f';
-        ctx.font = 'bold 32px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(winner, canvas.width / 2, canvas.height / 2);
-        socket.emit('syncState', { roomId: currentRoomId, state: { player1, player2, slashes, sparks, nightUntil } });
+        winnerText.textContent = winner + ' 🎉🏆';
+        winnerText.style.color = player1.health <= 0 ? player2.color : player1.color;
+        gameOverOverlay.style.display = 'flex';
+        socket.emit('gameEnded', { roomId: currentRoomId, winner: player1.health > 0 ? 'p1' : 'p2' });
         return;
       }
 
@@ -1045,43 +1147,28 @@
     }
 
     socket.on('updateState', (state) => {
-      player1.x = state.player1.x;
-      player1.y = state.player1.y;
-      player1.velY = state.player1.velY;
-      player1.isJumping = state.player1.isJumping;
-      player1.health = state.player1.health;
-      player1.direction = state.player1.direction;
-      player1.isDefending = state.player1.isDefending;
-      player1.arrows = state.player1.arrows;
-      player1.ammo = state.player1.ammo;
-      player1.reloadEnd = state.player1.reloadEnd;
-      player1.slowEndTime = state.player1.slowEndTime;
-      player1.PoisonerEndTime = state.player1.PoisonerEndTime;
-      player1.speedBoostEnd = state.player1.speedBoostEnd;
-      player1.specialCooldownEnd = state.player1.specialCooldownEnd;
-      player1.attackCooldownEnd = state.player1.attackCooldownEnd;
-      player1.domainActiveEnd = state.player1.domainActiveEnd;
-      player1.healAuraEnd = state.player1.healAuraEnd;
-      player1.healCooldownEnd = state.player1.healCooldownEnd;
-
-      player2.x = state.player2.x;
-      player2.y = state.player2.y;
-      player2.velY = state.player2.velY;
-      player2.isJumping = state.player2.isJumping;
-      player2.health = state.player2.health;
-      player2.direction = state.player2.direction;
-      player2.isDefending = state.player2.isDefending;
-      player2.arrows = state.player2.arrows;
-      player2.ammo = state.player2.ammo;
-      player2.reloadEnd = state.player2.reloadEnd;
-      player2.slowEndTime = state.player2.slowEndTime;
-      player2.PoisonerEndTime = state.player2.PoisonerEndTime;
-      player2.speedBoostEnd = state.player2.speedBoostEnd;
-      player2.specialCooldownEnd = state.player2.specialCooldownEnd;
-      player2.attackCooldownEnd = state.player2.attackCooldownEnd;
-      player2.domainActiveEnd = state.player2.domainActiveEnd;
-      player2.healAuraEnd = state.player2.healAuraEnd;
-      player2.healCooldownEnd = state.player2.healCooldownEnd;
+      if (!gameInProgress) return;
+      // Sync opponent state only
+      const self = isPlayer1 ? player1 : player2;
+      const opp = isPlayer1 ? player2 : player1;
+      opp.x = state.player2.x;
+      opp.y = state.player2.y;
+      opp.velY = state.player2.velY;
+      opp.isJumping = state.player2.isJumping;
+      opp.health = state.player2.health;
+      opp.direction = state.player2.direction;
+      opp.isDefending = state.player2.isDefending;
+      opp.arrows = state.player2.arrows;
+      opp.ammo = state.player2.ammo;
+      opp.reloadEnd = state.player2.reloadEnd;
+      opp.slowEndTime = state.player2.slowEndTime;
+      opp.PoisonerEndTime = state.player2.PoisonerEndTime;
+      opp.speedBoostEnd = state.player2.speedBoostEnd;
+      opp.specialCooldownEnd = state.player2.specialCooldownEnd;
+      opp.attackCooldownEnd = state.player2.attackCooldownEnd;
+      opp.domainActiveEnd = state.player2.domainActiveEnd;
+      opp.healAuraEnd = state.player2.healAuraEnd;
+      opp.healCooldownEnd = state.player2.healCooldownEnd;
 
       slashes.length = 0;
       slashes.push(...state.slashes);
@@ -1090,14 +1177,16 @@
       nightUntil = state.nightUntil;
     });
 
-    const playBtnEl = document.getElementById('playBtn');
-    const restartBtn = document.getElementById('restartBtn');
-    if (playBtnEl) playBtnEl.onclick = () => {
-      if (!selected.p1 || !selected.p2) { alert('Waiting for both players to select characters.'); return; }
-      startMatch(selected.p1, selected.p2);
-    };
-    if (restartBtn) restartBtn.onclick = () => { startMatch(selected.p1, selected.p2); };
+    socket.on('gameEnded', (data) => {
+      if (!gameInProgress) return;
+      const winnerMsg = data.winner === 'p1' ? 'PLAYER 1 WINS!' : 'PLAYER 2 WINS!';
+      winnerText.textContent = winnerMsg + ' 🎉🏆';
+      gameOverOverlay.style.display = 'flex';
+      inputDisabled = true;
+      gameInProgress = false;
+    });
 
+    // Initial route
     show('home');
   </script>
 </body>
