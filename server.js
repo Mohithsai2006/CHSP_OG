@@ -43,7 +43,7 @@ io.on('connection', (socket) => {
   });
 
   // Character selection
-  socket.on('selectCharacter', ({ roomId, playerId, characterId }) => {
+  socket.on('selectCharacter', ({ roomId, playerId, characterId, side }) => {
     const room = rooms.get(roomId);
     if (!room) return;
     if (playerId === room.players[0]) {
@@ -55,10 +55,11 @@ io.on('connection', (socket) => {
   });
 
   // Host starts game
-  socket.on('startGame', ({ roomId }) => {
+  socket.on('startGame', ({ roomId, p1, p2 }) => {
     const room = rooms.get(roomId);
     if (!room || socket.id !== room.players[0]) return; // Only host
-    io.to(roomId).emit('gameStarted', room.state);
+    const state = { p1, p2 };
+    io.to(roomId).emit('gameStarted', state);
   });
 
   // Player input sync
