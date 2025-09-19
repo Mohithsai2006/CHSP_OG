@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Clash_Heroes_Showdown_Play v2.1 (CHSP)</title>
+  <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+  <style>
+    :root{--bg:#0f1226;--card:#171a37;--text:#eaf0ff;--muted:#aab8ff;--accent:#7cf2c8;--accent2:#ffd166;--danger:#ff6b6b}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(135deg,#0f1226 0%,#1a1f4b 100%);color:var(--text)}
+    .wrap{max-width:1160px;margin:0 auto;padding:24px}
+    .title{font-size:28px;font-weight:800;letter-spacing:.6px;margin:6px 0 18px}
+    .subtitle{color:var(--muted);margin:0 0 18px}
+    .grid{display:grid;gap:14px}
+    .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .grid.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .card{background:linear-gradient(180deg, rgba(203, 14, 14, 0.05), rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.1);backdrop-filter: blur(4px);border-radius:16px;padding:16px;box-shadow:0 14px 40px rgba(0,0,0,.28)}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .spacer{height:10px}
+    .btn{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);padding:12px 16px;border-radius:12px;color:var(--text);cursor:pointer;font-weight:700;letter-spacing:.4px;transition:.15s transform ease,.2s background;text-align:center}
+    .btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.1)}
+    .btn.primary{background:linear-gradient(90deg,var(--accent) 0%,#8ef9d9 100%);color:#0d192b;border:none}
+    .btn.warn{background:linear-gradient(90deg,var(--accent2) 0%,#ffe599 100%);color:#1b1300;border:none}
+    .btn.ghost{background:transparent}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .menu{display:none}
+    .menu.active{display:block}
+    .hl{color:var(--accent)}
+    .muted{color:var(--muted)}
+    .char-card{display:flex;flex-direction:column;gap:10px;border-radius:14px;border:1px dashed rgba(255,255,255,.14);padding:12px;cursor:pointer;transition:.15s transform ease,.2s box-shadow}
+    .char-card:hover{transform:translateY(-2px);box-shadow:0 10px 20px rgba(0,0,0,.25)}
+    .char-swatch{height:86px;border-radius:12px;border:2px solid rgba(255,255,255,.25)}
+    .char-name{font-weight:800}
+    .char-desc{color:#c7d2ff;font-size:13px}
+    .char-card.selected{outline:3px solid var(--accent)}
+    .two-pane{display:grid;grid-template-columns:1fr 220px 1fr;gap:16px;align-items:start}
+    .divider{display:flex;align-items:center;justify-content:center}
+    .play-pod{position:sticky;top:16px;display:flex;flex-direction:column;gap:12px}
+    .stage-wrap{display:none}
+    .stage-wrap.active{display:block}
+    #gameCanvas{background:#87ceeb;display:block;margin:auto;border-radius:16px;border:2px solid rgba(255,255,255,.15)}
+    .bar{display:flex;justify-content:space-between;align-items:center;margin:8px 0 16px}
+    .pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:13px}
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    td,th{padding:10px 12px}
+    th{text-align:left;color:#bcd0ff;font-size:13px}
+    tbody tr{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+    tbody tr td:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
+    tbody tr td:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+    input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.2);color:var(--text)}
+    label{font-size:13px;color:#c9d4ff}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <div class="title">🎮 Clash_Heroes_Showdown_Play <span class="pill">v2.1</span></div>
+      <div class="row">
+        <button class="btn ghost" id="backBtn" title="Go Back">⟵ Back</button>
+        <button class="btn ghost" id="homeBtn" title="Home">🏠 Home</button>
+      </div>
+    </div>
+
+    <!-- HOME -->
+    <section id="screen-home" class="menu active">
+      <p class="subtitle">A Multiplayer-Game created by: <span class="hl">CHSP</span>.<br>Play online with another player by creating or joining a room.<br>Flow: <strong>Home → Create/Join Room → Main Menu → Start Game → Modes → VS Mode → Character Select → Play</strong><br>(!STILL UNDER DEVELOPMENT!)<br>Contact: <span class="hl">ganguuleader@gmail.com</span></p>
+      <div class="grid cols-2">
+        <div class="card">
+          <div class="title">Home</div>
+          <div class="grid cols-2">
+            <button class="btn primary" data-nav="room">🌐 Create/Join Room</button>
+            <button class="btn" data-nav="keys">⌨ Key Settings</button>
+            <button class="btn" disabled>🔐 Login (stub)</button>
+            <button class="btn" disabled>📝 Register (stub)</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="title">Details</div>
+          <ul class="subtitle">
+            <li>Online play requires two players in a room.</li>
+            <li>Change key settings in Key Settings.</li>
+            <li>Game supports 6 characters.</li>
+            <li><strong>ENJOY CLASHING!</strong></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROOM CREATE/JOIN -->
+    <section id="screen-room" class="menu">
+      <div class="title">Create or Join Room</div>
+      <div class="grid cols-2">
+        <div class="card">
+          <div class="title">Create Room</div>
+          <button class="btn primary" id="createRoomBtn">Create New Room</button>
+          <p class="subtitle" id="roomIdDisplay">Room ID: None</p>
+        </div>
+        <div class="card">
+          <div class="title">Join Room</div>
+          <form id="joinRoomForm">
+            <label>Room ID <input name="roomId" placeholder="Enter Room ID (e.g., ABC123)" maxlength="6"></label>
+            <button class="btn primary" type="submit">Join Room</button>
+          </form>
+          <p class="subtitle" id="joinStatus">Enter a Room ID to join.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN MENU -->
+    <section id="screen-main" class="menu">
+      <div class="grid cols-3">
+        <div class="card">
+          <div class="title">Main Menu</div>
+          <div class="grid">
+            <button class="btn primary" data-nav="modes">▶ Start Game</button>
+            <button class="btn" data-nav="characters">👤 Character List</button>
+            <button class="btn" data-nav="keys">⌨ Key Settings</button>
+            <button class="btn" data-nav="guide">📘 Guide</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="title">Tip</div>
+          <p>Use <span class="pill">Back</span> or <span class="pill">Home</span> anytime.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODES -->
+    <section id="screen-modes" class="menu">
+      <div class="grid cols-2">
+        <div class="card">
+          <div class="title">Select Mode</div>
+          <div class="grid cols-2">
+            <button class="btn primary" data-nav="vs-select">⚔ VS Mode</button>
+            <button class="btn" disabled>🌪 Survival (todo)</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="title">About VS</div>
+          <p>Pick characters for both sides and duel on floating platforms.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- VS SELECT -->
+    <section id="screen-vs-select" class="menu">
+      <div class="title">VS Mode — Character Select</div>
+      <div class="two-pane">
+        <div class="card" id="p1Pane">
+          <div class="row" style="justify-content:space-between">
+            <div class="subtitle">Player 1</div>
+            <span class="pill" id="p1ChoiceLabel">None</span>
+          </div>
+          <div class="grid cols-2" id="p1CharGrid"></div>
+        </div>
+        <div class="divider">
+          <div class="play-pod">
+            <button class="btn primary" id="playBtn" disabled>▶ Play</button>
+            <button class="btn" data-nav="modes">⟵ Back to Modes</button>
+          </div>
+        </div>
+        <div class="card" id="p2Pane">
+          <div class="row" style="justify-content:space-between">
+            <div class="subtitle">Player 2</div>
+            <span class="pill" id="p2ChoiceLabel">None</span>
+          </div>
+          <div class="grid cols-2" id="p2CharGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHARACTER LIST -->
+    <section id="screen-characters" class="menu">
+      <div class="title">Character List</div>
+      <div id="charList" class="grid cols-4"></div>
+    </section>
+
+    <!-- KEY SETTINGS -->
+    <section id="screen-keys" class="menu">
+      <div class="grid cols-2">
+        <div class="card">
+          <div class="title">Key Settings</div>
+          <form id="keysForm" class="grid cols-2">
+            <div>
+              <h4>Player 1</h4>
+              <label>Left <input name="p1_left" value="a" maxlength="1"></label>
+              <label>Right <input name="p1_right" value="d" maxlength="1"></label>
+              <label>Jump <input name="p1_jump" value="w" maxlength="1"></label>
+              <label>Down <input name="p1_down" value="x" maxlength="1"></label>
+              <label>Attack <input name="p1_attack" value="s" maxlength="1"></label>
+              <label>Defence <input name="p1_defence" value="f" maxlength="1"></label>
+              <label>Special <input name="p1_special" value="g" maxlength="1"></label>
+            </div>
+            <div>
+              <h4>Player 2</h4>
+              <label>Left <input name="p2_left" value="4" maxlength="1"></label>
+              <label>Right <input name="p2_right" value="6" maxlength="1"></label>
+              <label>Jump <input name="p2_jump" value="8" maxlength="1"></label>
+              <label>Down <input name="p2_down" value="2" maxlength="1"></label>
+              <label>Attack <input name="p2_attack" value="5" maxlength="1"></label>
+              <label>Defence <input name="p2_defence" value="+" maxlength="1"></label>
+              <label>Special <input name="p2_special" value="." maxlength="1"></label>
+            </div>
+            <div class="spacer"></div>
+            <div class="row">
+              <button class="btn primary" type="submit">💾 Save</button>
+              <button class="btn" id="resetKeys" type="button">↺ Reset</button>
+            </div>
+          </form>
+        </div>
+        <div class="card">
+          <div class="title">Notes</div>
+          <p>Single key per move (case-insensitive). Numpad works with NumLock. Keys are saved locally.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- GUIDE -->
+    <section id="screen-guide" class="menu">
+      <div class="title">Guide</div>
+      <div class="card">
+        <ul>
+          <li><strong style="color:#e67e22;">Swordsman</strong> 🗡️ (HP: 120, Color: <span style="color:#e67e22;">#e67e22</span>)<br>Basic Attack: A powerful melee slash that deals <strong>25 damage</strong>.<br>Special Ability: Temporarily gains speed<strong>2× movement speed</strong> for <strong>3 seconds</strong>.</li>
+          <li><strong style="color:#2ecc71;">Archer</strong> 🏹 (HP: 100, Color: <span style="color:#2ecc71;">#2ecc71</span>)<br>Basic Attack: Fires arrows dealing <strong>10 damage</strong> per shot.<br>Special Ability: Fires a <strong>fast arrow</strong> that deals <strong>20 damage</strong>.</li>
+          <li><strong style="color:#3498db;">Icezzy</strong> ❄️ (HP: 105, Color: <span style="color:#3498db;">#3498db</span>)<br>Basic Attack: Shoots an ice bolt that deals <strong>10 damage</strong>.<br>Special Ability: Casts a <strong>freeze attack</strong> that does <strong>10 damage</strong> and <strong>slows the enemy for 10 seconds</strong>.</li>
+          <li><strong style="color:#2ecc40;">Poisonerer</strong> ☠️ (HP: 95, Color: <span style="color:#2ecc40;">#2ecc40</span>)<br>Basic Attack: Shoots a Poisoner dart that deals <strong>10 immediate damage</strong>.<br>Special Ability: Fires a stronger dart that deals <strong>10 direct damage</strong> + <strong>10 Poisoner damage over 15 seconds</strong>.</li>
+          <li><strong style="color:#9b59b6;">Healer</strong> ✨ (HP: 100, Color: <span style="color:#9b59b6;">#9b59b6</span>)<br>Basic Attack: Fires a bolt dealing <strong>10 damage</strong>.<br>Special Ability: Heals allies for <strong>40 HP over 20 seconds</strong>. Cooldown: <strong>90 seconds</strong>.</li>
+          <li><strong style="color:#1abc9c;">NightGhost</strong> 🌙 (HP: 80, Color: <span style="color:#1abc9c;">#1abc9c</span>)<br>Basic Attack: Fires bullets that deal <strong>10 damage</strong> each. Starts with <strong>6 bullets</strong> (8 in Domain mode).<br>Passive Ability: Can <strong>phase (become intangible)</strong> at night for 30 seconds. Cooldown: 50 seconds.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- GAME STAGE -->
+    <section id="screen-stage" class="stage-wrap">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="pill" id="hudP1">P1</div>
+        <div class="row" style="gap:6px">
+          <button class="btn" id="restartBtn">↻ Restart</button>
+          <button class="btn warn" data-nav="vs-select">⟵ Exit to Select</button>
+        </div>
+        <div class="pill" id="hudP2">P2</div>
+      </div>
+      <canvas id="gameCanvas" width="1000" height="540"></canvas>
+    </section>
+
+  </div>
+
+  <script>
+    /********************
+     * Socket.IO Setup  *
+     ********************/
+    const socket = io('YOUR_SOCKET_SERVER_URL'); // Replace with your Socket.IO server URL (e.g., https://your-socket-server.onrender.com)
+    let currentRoomId = null;
+    let playerId = null;
+    let isPlayer1 = false;
+
+    socket.on('connect', () => {
+      playerId = socket.id;
+    });
+
+    /********************
+     * Room Handling    *
+     ********************/
+    const createRoomBtn = document.getElementById('createRoomBtn');
+    const joinRoomForm = document.getElementById('joinRoomForm');
+    const roomIdDisplay = document.getElementById('roomIdDisplay');
+    const joinStatus = document.getElementById('joinStatus');
+
+    if (createRoomBtn) {
+      createRoomBtn.onclick = () => {
+        socket.emit('createRoom', (roomId) => {
+          currentRoomId = roomId;
+          isPlayer1 = true;
+          roomIdDisplay.textContent = `Room ID: ${roomId}`;
+          show('main');
+        });
+      };
+    }
+
+    if (joinRoomForm) {
+      joinRoomForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const roomId = joinRoomForm.roomId.value.trim().toUpperCase();
+        socket.emit('joinRoom', roomId, ({ success, message, roomId: joinedRoomId }) => {
+          if (success) {
+            currentRoomId = joinedRoomId;
+            isPlayer1 = false;
+            joinStatus.textContent = `Joined room ${roomId}`;
+            show('main');
+          } else {
+            joinStatus.textContent = message || 'Failed to join room';
+          }
+        });
+      });
+    }
+
+    socket.on('playerJoined', () => {
+      alert('Another player has joined the room!');
+    });
+
+    socket.on('playerLeft', () => {
+      alert('The other player has left the room.');
+      show('home');
+      currentRoomId = null;
+    });
+
+    /********************
+     * Router + State   *
+     ********************/
+    const screens = {
+      home: document.getElementById('screen-home'),
+      room: document.getElementById('screen-room'),
+      main: document.getElementById('screen-main'),
+      modes: document.getElementById('screen-modes'),
+      vsSelect: document.getElementById('screen-vs-select'),
+      characters: document.getElementById('screen-characters'),
+      keys: document.getElementById('screen-keys'),
+      guide: document.getElementById('screen-guide'),
+      stage: document.getElementById('screen-stage'),
+    };
+    const historyStack = [];
+    function show(name) {
+      for (const k in screens) { screens[k].classList.remove('active'); }
+      if (name === 'stage') { screens.stage.classList.add('active'); }
+      else { screens[name].classList.add('active'); }
+      if (name !== 'home') historyStack.push(name);
+      updateBackBtn();
+      if (name === 'vsSelect') {
+        renderSelectGrid(p1Grid, 'p1');
+        renderSelectGrid(p2Grid, 'p2');
+        updateSelections();
+      }
+    }
+    function updateBackBtn() { document.getElementById('backBtn').disabled = historyStack.length === 0; }
+    document.getElementById('homeBtn').onclick = () => {
+      historyStack.length = 0;
+      show('home');
+      currentRoomId = null;
+      socket.emit('leaveRoom', currentRoomId);
+    };
+    document.getElementById('backBtn').onclick = () => {
+      historyStack.pop();
+      const prev = historyStack.pop();
+      show(prev || 'home');
+    };
+    document.querySelectorAll('[data-nav]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-nav');
+        const map = { main: 'main', keys: 'keys', characters: 'characters', guide: 'guide', modes: 'modes', 'vs-select': 'vsSelect', room: 'room' };
+        show(map[target] || 'home');
+      });
+    });
+
+    /********************
+     * Characters       *
+     ********************/
+    const CHARACTERS = [
+      { id: 'Swordsman', name: 'Swordsman', color: '#e67e22', hp: 120, desc: 'Melee slash 25 dmg. Special: 2× speed (3s).', role: 'Swordsman' },
+      { id: 'Archer', name: 'Archer', color: '#2ecc71', hp: 100, desc: 'Arrow 10 dmg. Special: fast arrow 20 dmg.', role: 'Archer' },
+      { id: 'Icezzy', name: 'Icezzy', color: '#3498db', hp: 105, desc: 'Ice bolt 10 dmg. Special: freeze 10 dmg + slow.', role: 'Icezzy' },
+      { id: 'Poisoner', name: 'Poisonerer', color: '#2ecc40', hp: 95, desc: 'Dart 10 dmg. Special: 10 direct + 10 over 15s.', role: 'Poisoner' },
+      { id: 'Healer', name: 'Healer', color: '#9b59b6', hp: 100, desc: 'Bolt 10 dmg. Special: heal 40/20s (90s cd).', role: 'Healer' },
+      { id: 'NightGhost', name: 'NightGhost', color: '#1abc9c', hp: 80, desc: 'Bullets 10 dmg. Ammo 6 (8 in Domain). Passive phasing only at night.', role: 'NightGhost' },
+    ];
+
+    const charListEl = document.getElementById('charList');
+    function renderCharList(targetEl) {
+      if (!targetEl) return;
+      targetEl.innerHTML = '';
+      CHARACTERS.forEach(ch => {
+        const card = document.createElement('div');
+        card.className = 'char-card';
+        card.innerHTML = `<div class="char-swatch" style="background:${ch.color}"></div><div class="char-name">${ch.name}</div><div class="char-desc">${ch.desc}</div>`;
+        targetEl.appendChild(card);
+      });
+    }
+    renderCharList(charListEl);
+
+    const p1Grid = document.getElementById('p1CharGrid');
+    const p2Grid = document.getElementById('p2CharGrid');
+    const p1Label = document.getElementById('p1ChoiceLabel');
+    const p2Label = document.getElementById('p2ChoiceLabel');
+    const playBtn = document.getElementById('playBtn');
+    let selected = { p1: null, p2: null };
+
+    function renderSelectGrid(gridEl, side) {
+      gridEl.innerHTML = '';
+      CHARACTERS.forEach(ch => {
+        const card = document.createElement('div');
+        card.className = 'char-card';
+        card.dataset.id = ch.id;
+        card.innerHTML = `<div class="char-swatch" style="background:${ch.color}"></div><div class="char-name">${ch.name}</div><div class="char-desc">${ch.desc}</div>`;
+        card.onclick = () => {
+          if ((side === 'p1' && isPlayer1) || (side === 'p2' && !isPlayer1)) {
+            selected[side] = ch.id;
+            socket.emit('selectCharacter', { roomId: currentRoomId, playerId, characterId: ch.id });
+            updateSelections();
+          }
+        };
+        gridEl.appendChild(card);
+      });
+    }
+
+    function updateSelections() {
+      if (p1Grid) { [...p1Grid.children].forEach(el => el.classList.toggle('selected', el.dataset.id === selected.p1)); }
+      if (p2Grid) { [...p2Grid.children].forEach(el => el.classList.toggle('selected', el.dataset.id === selected.p2)); }
+      if (p1Label) p1Label.textContent = selected.p1 ? CHARACTERS.find(c => c.id === selected.p1).name : 'None';
+      if (p2Label) p2Label.textContent = selected.p2 ? CHARACTERS.find(c => c.id === selected.p2).name : 'None';
+      if (playBtn) playBtn.disabled = !(selected.p1 && selected.p2);
+    }
+
+    socket.on('updateSelections', (state) => {
+      selected.p1 = state.p1;
+      selected.p2 = state.p2;
+      updateSelections();
+    });
+
+    socket.on('startGame', (state) => {
+      selected.p1 = state.p1;
+      selected.p2 = state.p2;
+      startMatch(state.p1, state.p2);
+    });
+
+    /********************
+     * Key Settings     *
+     ********************/
+    const DEFAULT_KEYS = { p1: { left: 'a', right: 'd', jump: 'w', down: 'x', attack: 's', defence: 'f', special: 'g' }, p2: { left: '4', right: '6', jump: '8', down: '2', attack: '5', defence: '+', special: '.' } };
+    function loadKeys() { const saved = JSON.parse(localStorage.getItem('Clash_Heroes_Showdown_Play_keys') || 'null'); return saved || JSON.parse(JSON.stringify(DEFAULT_KEYS)); }
+    function saveKeys(keys) { localStorage.setItem('Clash_Heroes_Showdown_Play_keys', JSON.stringify(keys)); }
+
+    const keysForm = document.getElementById('keysForm');
+    const resetBtn = document.getElementById('resetKeys');
+    function fillForm() {
+      if (!keysForm) return;
+      const k = loadKeys();
+      keysForm.p1_left.value = k.p1.left;
+      keysForm.p1_right.value = k.p1.right;
+      keysForm.p1_jump.value = k.p1.jump;
+      keysForm.p1_down.value = k.p1.down;
+      keysForm.p1_attack.value = k.p1.attack;
+      keysForm.p1_defence.value = k.p1.defence;
+      keysForm.p1_special.value = k.p1.special;
+      keysForm.p2_left.value = k.p2.left;
+      keysForm.p2_right.value = k.p2.right;
+      keysForm.p2_jump.value = k.p2.jump;
+      keysForm.p2_down.value = k.p2.down;
+      keysForm.p2_attack.value = k.p2.attack;
+      keysForm.p2_defence.value = k.p2.defence;
+      keysForm.p2_special.value = k.p2.special;
+    }
+    if (keysForm) {
+      fillForm();
+      keysForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fd = new FormData(keysForm);
+        const cfg = loadKeys();
+        cfg.p1.left = (fd.get('p1_left') || 'a').toLowerCase();
+        cfg.p1.right = (fd.get('p1_right') || 'd').toLowerCase();
+        cfg.p1.jump = (fd.get('p1_jump') || 'w').toLowerCase();
+        cfg.p1.down = (fd.get('p1_down') || 'x').toLowerCase();
+        cfg.p1.attack = (fd.get('p1_attack') || 's').toLowerCase();
+        cfg.p1.defence = (fd.get('p1_defence') || 'f').toLowerCase();
+        cfg.p1.special = (fd.get('p1_special') || 'g').toLowerCase();
+        cfg.p2.left = (fd.get('p2_left') || '4').toLowerCase();
+        cfg.p2.right = (fd.get('p2_right') || '6').toLowerCase();
+        cfg.p2.jump = (fd.get('p2_jump') || '8').toLowerCase();
+        cfg.p2.down = (fd.get('p2_down') || '2').toLowerCase();
+        cfg.p2.attack = (fd.get('p2_attack') || '5').toLowerCase();
+        cfg.p2.defence = (fd.get('p2_defence') || '+').toLowerCase();
+        cfg.p2.special = (fd.get('p2_special') || '.').toLowerCase();
+        saveKeys(cfg);
+        alert('Keys saved!');
+      });
+      resetBtn && resetBtn.addEventListener('click', () => {
+        saveKeys(DEFAULT_KEYS);
+        fillForm();
+        alert('Reset to defaults.');
+      });
+    }
+
+    /********************
+     * Game Engine      *
+     ********************/
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gravity = 0.6;
+    const GOLD = 'rgba(255,215,0,0.95)';
+    const platforms = [{ x: 150, y: 390, w: 140, h: 12 }, { x: 710, y: 390, w: 140, h: 12 }, { x: 340, y: 250, w: 140, h: 12 }, { x: 560, y: 250, w: 140, h: 12 }];
+
+    const slashes = [];
+    const sparks = [];
+    let nightUntil = 0;
+    const isNight = () => Date.now() < nightUntil;
+
+    class Player {
+      constructor(x, base, controls) {
+        this.x = x;
+        this.y = 430;
+        this.width = 40;
+        this.height = 50;
+        this.color = base.color;
+        this.velY = 0;
+        this.isJumping = false;
+        this.health = base.hp;
+        this.maxHealth = base.hp;
+        this.controls = controls;
+        this.role = base.role;
+        this.arrows = [];
+        this.direction = 1;
+        this.isDefending = false;
+        this.ignorePlatform = false;
+        this.slowEndTime = 0;
+        this.PoisonerEndTime = 0;
+        this.PoisonerInterval = null;
+        this.speedBoostEnd = 0;
+        this.specialCooldownEnd = 0;
+        this.attackCooldownEnd = 0;
+        this.baseSpeed = 5;
+        this.domainActiveEnd = 0;
+        this.ammo = (this.role === 'Swordsman') ? null : (this.role === 'NightGhost' ? 6 : 7);
+        this.reloadEnd = 0;
+        this.healAuraEnd = 0;
+        this.healInterval = null;
+        this.auraPulse = 0;
+        this.healCooldownEnd = 0;
+        this._frameStartX = this.x;
+        this._frameStartY = this.y;
+        this._stationary = false;
+        this._activeIntervals = [];
+      }
+      facing() { return this.direction === 1 ? '→' : '←'; }
+      currentSpeed() {
+        let s = (Date.now() < this.speedBoostEnd) ? this.baseSpeed * 2 : this.baseSpeed;
+        if (Date.now() < this.slowEndTime) s *= 0.25;
+        return s;
+      }
+      getAmmoCap() {
+        if (this.role === 'Swordsman') return null;
+        if (this.role === 'NightGhost') { return (Date.now() < this.domainActiveEnd) ? 8 : 6; }
+        return 7;
+      }
+      isReloading() { return this.role !== 'Swordsman' && this.reloadEnd > Date.now(); }
+      isStationary() { return !!this._stationary; }
+      opponentWithin2Heights(opponent) {
+        const myCenterX = this.x + this.width / 2;
+        const oppCenterX = opponent.x + opponent.width / 2;
+        return Math.abs(myCenterX - oppCenterX) <= (2 * this.height);
+      }
+      draw() {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.fillStyle = 'rgba(0,0,0,.45)';
+        const tY = this.y + this.height / 2 - 4;
+        if (this.direction === 1) {
+          ctx.beginPath();
+          ctx.moveTo(this.x + this.width + 2, tY);
+          ctx.lineTo(this.x + this.width + 10, tY + 4);
+          ctx.lineTo(this.x + this.width + 2, tY + 8);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(this.x - 2, tY);
+          ctx.lineTo(this.x - 10, tY + 4);
+          ctx.lineTo(this.x - 2, tY + 8);
+          ctx.closePath();
+          ctx.fill();
+        }
+        if (this.isDefending) {
+          ctx.strokeStyle = 'rgba(110,180,255,.9)';
+          ctx.lineWidth = 3;
+          if (this.direction === 1) { ctx.strokeRect(this.x + this.width, this.y, 8, this.height); }
+          else { ctx.strokeRect(this.x - 8, this.y, 8, this.height); }
+        }
+        if (this.role === 'Healer' && Date.now() < this.healAuraEnd) {
+          this.auraPulse += 0.08;
+          const alpha = 0.5 + 0.5 * Math.sin(this.auraPulse * 4);
+          ctx.strokeStyle = `rgba(255,215,0,${alpha})`;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(this.x + this.width / 2, this.y + this.height / 2, 35, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if (this.role !== 'Swordsman') {
+          ctx.fillStyle = '#000';
+          ctx.font = '12px Arial';
+          const y = this.y - 6;
+          if (this.isReloading()) { ctx.fillText('Reloading…', this.x - 6, y); }
+          else { ctx.fillText('Ammo: ' + this.ammo, this.x - 6, y); }
+        }
+        if (this.role === 'NightGhost' && Date.now() < this.domainActiveEnd) {
+          ctx.strokeStyle = 'rgba(26,188,156,0.6)';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(this.x - 3, this.y - 3, this.width + 6, this.height + 6);
+        }
+      }
+      moveLeft() { this.x -= this.currentSpeed(); this.direction = -1; if (this.x < 0) this.x = 0; }
+      moveRight() { this.x += this.currentSpeed(); this.direction = 1; if (this.x + this.width > canvas.width) this.x = canvas.width - this.width; }
+      jump() { if (!this.isJumping) { this.velY = -16; this.isJumping = true; } }
+      down() { this.ignorePlatform = true; setTimeout(() => this.ignorePlatform = false, 300); }
+      attack(isSpecial = false) {
+        const now = Date.now();
+        if (this.role === 'Swordsman') {
+          if (now < this.attackCooldownEnd) return;
+          const windup = 220, active = 140, recover = 200;
+          const range = this.height;
+          const w = range;
+          const h = this.height * 0.6;
+          const x = this.direction === 1 ? this.x + this.width : this.x - w;
+          const y = this.y + this.height / 2 - h / 2;
+          const isSuperMelee = now < this.speedBoostEnd;
+          slashes.push({ owner: this, x, y, w, h, damage: 25, activateAt: now + windup, endAt: now + windup + active, super: isSuperMelee });
+          this.attackCooldownEnd = now + windup + active + recover;
+        } else {
+          if (this.reloadEnd && now >= this.reloadEnd) { this.ammo = this.getAmmoCap(); this.reloadEnd = 0; }
+          if (this.isReloading()) return;
+          if (this.ammo <= 0) { this.reloadEnd = now + 1500; return; }
+          let dmg = 10, speed = 6, flags = {};
+          if (isSpecial) {
+            if (this.role === 'Archer') { dmg = 20; speed = 25; flags.super = true; }
+            if (this.role === 'Icezzy') { dmg = 10; speed = 7; flags.freeze = true; flags.super = true; }
+            if (this.role === 'Poisoner') { dmg = 10; flags.PoisonerSpecial = true; flags.super = true; }
+            if (this.role === 'Healer') { /* Healer special is HOT, handled by useSpecial */ }
+            if (this.role === 'NightGhost') { /* domain handled by useSpecial */ }
+          }
+          const projColor = (this.role === 'NightGhost') ? '#16a085' : (flags.PoisonerSpecial ? 'darkgreen' : (flags.freeze ? 'deepskyblue' : (this.role === 'Healer' ? '#b084f5' : 'brown')));
+          const proj = { x: this.x + (this.direction === 1 ? this.width : -14), y: this.y + this.height / 2, width: 14, height: 5, speed: this.direction * speed, damage: dmg, color: projColor, Healer: (this.role === 'Healer'), freeze: flags.freeze, PoisonerSpecial: flags.PoisonerSpecial, super: !!flags.super };
+          this.arrows.push(proj);
+          this.ammo -= 1;
+          if (this.ammo <= 0) { this.reloadEnd = now + 1500; }
+        }
+      }
+      useSpecial(opponent) {
+        const now = Date.now();
+        if (this.role === 'Swordsman') {
+          if (now < this.specialCooldownEnd) return;
+          this.speedBoostEnd = now + 3000;
+          this.specialCooldownEnd = now + 8000;
+          return;
+        }
+        if (this.role === 'Healer') {
+          if (now < this.healCooldownEnd) return;
+          this.healAuraEnd = now + 20000;
+          this.healCooldownEnd = now + 90000;
+          if (this.healInterval) clearInterval(this.healInterval);
+          this.healInterval = setInterval(() => {
+            if (Date.now() < this.healAuraEnd) { this.health = Math.min(this.maxHealth, this.health + 1); }
+            else { clearInterval(this.healInterval); this.healInterval = null; }
+          }, 500);
+          this._activeIntervals.push(this.healInterval);
+          return;
+        }
+        if (this.role === 'NightGhost') {
+          if (now < this.specialCooldownEnd) return;
+          if (!this.opponentWithin2Heights(opponent)) return;
+          this.domainActiveEnd = now + 30000;
+          nightUntil = Math.max(nightUntil, this.domainActiveEnd);
+          this.reloadEnd = 0;
+          this.ammo = this.getAmmoCap();
+          this.specialCooldownEnd = now + 50000;
+          return;
+        }
+        if (now < this.specialCooldownEnd) return;
+        this.attack(true);
+        this.specialCooldownEnd = now + 1000;
+      }
+      update() {
+        this.y += this.velY;
+        this.velY += gravity;
+        for (let p of platforms) {
+          if (!this.ignorePlatform && this.x + this.width > p.x && this.x < p.x + p.w && this.y + this.height <= p.y && this.y + this.height + this.velY >= p.y) {
+            this.y = p.y - this.height;
+            this.velY = 0;
+            this.isJumping = false;
+          }
+        }
+        if (this.y + this.height >= canvas.height) {
+          this.y = canvas.height - this.height;
+          this.velY = 0;
+          this.isJumping = false;
+        }
+        for (let a of this.arrows) { a.x += a.speed; }
+        this.arrows = this.arrows.filter(a => a.x > -40 && a.x < canvas.width + 40);
+        if (Date.now() > this.PoisonerEndTime && this.PoisonerInterval) {
+          clearInterval(this.PoisonerInterval);
+          this.PoisonerInterval = null;
+        }
+        if (this.role === 'NightGhost' && Date.now() > this.domainActiveEnd) {
+          if (this.ammo != null) this.ammo = Math.min(this.ammo, 6);
+        }
+        this._stationary = (Math.abs(this.x - this._frameStartX) < 0.5 && Math.abs(this.y - this._frameStartY) < 0.5);
+      }
+      applyFreeze() { this.slowEndTime = Date.now() + 10000; }
+      applyPoisonerOverTime(totalDamage, durationMs) {
+        const ticks = Math.max(1, Math.round(durationMs / 1000));
+        const perTick = totalDamage / ticks;
+        const end = Date.now() + durationMs;
+        this.PoisonerEndTime = end;
+        if (this.PoisonerInterval) clearInterval(this.PoisonerInterval);
+        this.PoisonerInterval = setInterval(() => {
+          if (Date.now() < end) { this.health -= perTick; }
+          else { clearInterval(this.PoisonerInterval); this.PoisonerInterval = null; }
+        }, 1000);
+        this._activeIntervals.push(this.PoisonerInterval);
+      }
+      drawArrows() {
+        for (let a of this.arrows) {
+          ctx.fillStyle = a.color || (a.PoisonerSpecial ? 'darkgreen' : (a.freeze ? 'deepskyblue' : (this.role === 'Healer' ? '#b084f5' : 'brown')));
+          ctx.fillRect(a.x, a.y, a.width, a.height);
+        }
+      }
+      cleanupTimers() {
+        if (this.healInterval) { clearInterval(this.healInterval); this.healInterval = null; }
+        if (this.PoisonerInterval) { clearInterval(this.PoisonerInterval); this.PoisonerInterval = null; }
+        for (const id of this._activeIntervals) { try { clearInterval(id); } catch (e) {} }
+        this._activeIntervals = [];
+      }
+      remaining(ms) { return Math.max(0, ms - Date.now()); }
+    }
+
+    function drawPlatforms() { ctx.fillStyle = 'rgba(240,240,255,.85)'; platforms.forEach(p => ctx.fillRect(p.x, p.y, p.w, p.h)); }
+
+    function drawHealthBars(p1, p2) {
+      const barWidth = 220;
+      const barHeight = 18;
+      const offsetX = 80;
+      const y = 30;
+      ctx.font = '16px Arial';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#000';
+      function getHealthColor(ratio) {
+        if (ratio > 0.6) return '#2ecc71';
+        if (ratio > 0.3) return '#e67e22';
+        return '#e74c3c';
+      }
+      const p1Text = `P1 ${Math.max(0, Math.floor(p1.health))} HP`;
+      ctx.fillText(p1Text, offsetX, y);
+      const p1TextWidth = ctx.measureText(p1Text).width;
+      let p1BarX = offsetX + p1TextWidth + 12;
+      let p1BarY = y - barHeight / 2;
+      ctx.fillStyle = '#222';
+      roundRect(ctx, p1BarX, p1BarY, barWidth, barHeight, 6, true, true);
+      const p1Ratio = p1.health / p1.maxHealth;
+      ctx.fillStyle = getHealthColor(p1Ratio);
+      roundRect(ctx, p1BarX, p1BarY, barWidth * p1Ratio, barHeight, 6, true, false);
+      const p2Text = `P2 ${Math.max(0, Math.floor(p2.health))} HP`;
+      const p2TextWidth = ctx.measureText(p2Text).width;
+      let p2BarX = canvas.width - offsetX - barWidth;
+      let p2BarY = y - barHeight / 2;
+      ctx.fillStyle = '#000';
+      ctx.fillText(p2Text, p2BarX - p2TextWidth - 12, y);
+      ctx.fillStyle = '#222';
+      roundRect(ctx, p2BarX, p2BarY, barWidth, barHeight, 6, true, true);
+      const p2Ratio = p2.health / p2.maxHealth;
+      ctx.fillStyle = getHealthColor(p2Ratio);
+      roundRect(ctx, p2BarX, p2BarY, barWidth * p2Ratio, barHeight, 6, true, false);
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    function drawBackground() {
+      const night = isNight();
+      const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      if (night) { grd.addColorStop(0, '#0b0f2a'); grd.addColorStop(1, '#1a2044'); }
+      else { grd.addColorStop(0, '#a7d8ff'); grd.addColorStop(1, '#c7f0ff'); }
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (night) {
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        for (let i = 0; i < 40; i++) {
+          const x = (i * 97) % canvas.width;
+          const y = (i * 53) % 200 + 20;
+          ctx.fillRect(x, y, 2, 2);
+        }
+      }
+    }
+
+    function hitSpark(x, y) { sparks.push({ x, y, ttl: 250 }); }
+    function drawSparks() {
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const s = sparks[i];
+        s.ttl -= 16;
+        if (s.ttl <= 0) { sparks.splice(i, 1); continue; }
+        ctx.strokeStyle = 'rgba(255,255,255,.7)';
+        ctx.beginPath();
+        ctx.moveTo(s.x - 6, s.y);
+        ctx.lineTo(s.x + 6, s.y);
+        ctx.moveTo(s.x, s.y - 6);
+        ctx.lineTo(s.x, s.y + 6);
+        ctx.stroke();
+      }
+    }
+
+    function checkCollisions(p1, p2) {
+      for (let i = p1.arrows.length - 1; i >= 0; i--) {
+        const a1 = p1.arrows[i];
+        for (let j = p2.arrows.length - 1; j >= 0; j--) {
+          const a2 = p2.arrows[j];
+          if (a1.x < a2.x + a2.width && a1.x + a1.width > a2.x && a1.y < a2.y + a2.height && a1.y + a1.height > a2.y) {
+            if (a1.super && !a2.super) { p2.arrows.splice(j, 1); continue; }
+            if (!a1.super && a2.super) { p1.arrows.splice(i, 1); break; }
+            if (a1.super && a2.super) { continue; }
+            p2.arrows.splice(j, 1);
+            p1.arrows.splice(i, 1);
+            break;
+          }
+        }
+      }
+      for (let k = slashes.length - 1; k >= 0; k--) {
+        const s = slashes[k];
+        const now = Date.now();
+        if (now < s.activateAt) {
+          ctx.setLineDash([6, 4]);
+          ctx.strokeStyle = 'rgba(255,215,0,.5)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(s.x, s.y, s.w, s.h);
+          ctx.setLineDash([]);
+          continue;
+        }
+        if (now > s.endAt) { slashes.splice(k, 1); continue; }
+        ctx.strokeStyle = GOLD;
+        ctx.lineWidth = 4;
+        ctx.strokeRect(s.x, s.y, s.w, s.h);
+        const opp = (s.owner === p1) ? p2 : p1;
+        for (let ai = opp.arrows.length - 1; ai >= 0; ai--) {
+          const a = opp.arrows[ai];
+          const inArea = (a.x < s.x + s.w && a.x + a.width > s.x && a.y < s.y + s.h && a.y + a.height > s.y);
+          if (inArea) { hitSpark(a.x, a.y); opp.arrows.splice(ai, 1); }
+        }
+        if (s.x < opp.x + opp.width && s.x + s.w > opp.x && s.y < opp.y + opp.height && s.y + s.h > opp.y) {
+          const dmg = s.super ? s.damage : (opp.isDefending ? 10 : s.damage);
+          opp.health -= dmg;
+          hitSpark(opp.x + opp.width / 2, opp.y + opp.height / 2);
+          slashes.splice(k, 1);
+        }
+      }
+      for (let ai = p1.arrows.length - 1; ai >= 0; ai--) {
+        const a = p1.arrows[ai];
+        if (a.x < p2.x + p2.width && a.x + a.width > p2.x && a.y < p2.y + p2.height && a.y + a.height > p2.y) {
+          if (p2.role === 'NightGhost' && p2.isStationary() && isNight()) {
+            continue;
+          } else {
+            const defendingFront = p2.isDefending && ((p2.direction === 1 && a.speed < 0) || (p2.direction === -1 && a.speed > 0));
+            if (a.super) {
+              p2.health -= a.damage;
+              if (a.freeze) p2.applyFreeze();
+              if (a.PoisonerSpecial) p2.applyPoisonerOverTime(10, 15000);
+              hitSpark(p2.x + p2.width / 2, p2.y + p2.height / 2);
+              p1.arrows.splice(ai, 1);
+            } else {
+              p2.health -= defendingFront ? 1 : a.damage;
+              if (a.freeze) p2.applyFreeze();
+              if (a.PoisonerSpecial) p2.applyPoisonerOverTime(10, 15000);
+              hitSpark(p2.x + p2.width / 2, p2.y + p2.height / 2);
+              p1.arrows.splice(ai, 1);
+            }
+          }
+        }
+      }
+      for (let ai = p2.arrows.length - 1; ai >= 0; ai--) {
+        const a = p2.arrows[ai];
+        if (a.x < p1.x + p1.width && a.x + a.width > p1.x && a.y < p1.y + p1.height && a.y + a.height > p1.y) {
+          if (p1.role === 'NightGhost' && p1.isStationary() && isNight()) {
+            continue;
+          } else {
+            const defendingFront = p1.isDefending && ((p1.direction === 1 && a.speed < 0) || (p1.direction === -1 && a.speed > 0));
+            if (a.super) {
+              p1.health -= a.damage;
+              if (a.freeze) p1.applyFreeze();
+              if (a.PoisonerSpecial) p1.applyPoisonerOverTime(10, 15000);
+              hitSpark(p1.x + p1.width / 2, p1.y + p1.height / 2);
+              p2.arrows.splice(ai, 1);
+            } else {
+              p1.health -= defendingFront ? 1 : a.damage;
+              if (a.freeze) p1.applyFreeze();
+              if (a.PoisonerSpecial) p1.applyPoisonerOverTime(10, 15000);
+              hitSpark(p1.x + p1.width / 2, p1.y + p1.height / 2);
+              p2.arrows.splice(ai, 1);
+            }
+          }
+        }
+      }
+    }
+
+    const keysDown = {};
+    window.addEventListener('keydown', e => {
+      const key = e.key.toLowerCase();
+      keysDown[key] = true;
+      if (currentRoomId && player1 && player2) {
+        socket.emit('playerInput', { roomId: currentRoomId, playerId, input: { key, down: true } });
+      }
+    });
+    window.addEventListener('keyup', e => {
+      const key = e.key.toLowerCase();
+      keysDown[key] = false;
+      if (currentRoomId && player1 && player2) {
+        socket.emit('playerInput', { roomId: currentRoomId, playerId, input: { key, down: false } });
+      }
+    });
+
+    const hudP1 = document.getElementById('hudP1');
+    const hudP2 = document.getElementById('hudP2');
+
+    let player1, player2, animId = null;
+    function cleanupMatch() {
+      cancelAnimationFrame(animId);
+      if (player1) player1.cleanupTimers();
+      if (player2) player2.cleanupTimers();
+      slashes.length = 0;
+      sparks.length = 0;
+    }
+
+    function startMatch(p1CharId, p2CharId) {
+      cleanupMatch();
+      const k = loadKeys();
+      const c1 = CHARACTERS.find(c => c.id === p1CharId) || CHARACTERS[0];
+      const c2 = CHARACTERS.find(c => c.id === p2CharId) || CHARACTERS[1];
+      player1 = new Player(120, c1, isPlayer1 ? k.p1 : k.p2);
+      player2 = new Player(canvas.width - 160, c2, isPlayer1 ? k.p2 : k.p1);
+      hudP1.textContent = `P1: ${c1.name}`;
+      hudP2.textContent = `P2: ${c2.name}`;
+      nightUntil = 0;
+      cancelAnimationFrame(animId);
+      show('stage');
+      gameLoop();
+    }
+
+    function handlePlayerControls(p, who, opponent) {
+      const kc = p.controls;
+      p.isDefending = !!keysDown[kc.defence];
+      if (keysDown[kc.left]) p.moveLeft();
+      if (keysDown[kc.right]) p.moveRight();
+      if (keysDown[kc.jump]) p.jump();
+      if (keysDown[kc.down]) p.down();
+      if (keysDown[kc.attack]) {
+        const flag = `_atk_${who}`;
+        if (!keysDown[flag]) { p.attack(false); keysDown[flag] = true; }
+      } else { keysDown[`_atk_${who}`] = false; }
+      if (keysDown[kc.special]) {
+        const flag = `_sp_${who}`;
+        if (!keysDown[flag]) { p.useSpecial(opponent); keysDown[flag] = true; }
+      } else { keysDown[`_sp_${who}`] = false; }
+    }
+
+    socket.on('playerInput', ({ playerId: senderId, input }) => {
+      if (senderId !== playerId) {
+        const opponent = isPlayer1 ? player2 : player1;
+        if (opponent) {
+          keysDown[input.key] = input.down;
+        }
+      }
+    });
+
+    function drawPowerHUD(p) {
+      const now = Date.now();
+      const x = p.x + p.width / 2;
+      const y = p.y - 12;
+      ctx.textAlign = 'center';
+      ctx.font = '12px Arial';
+      const lines = [];
+      if (p.role === 'Healer') {
+        if (now < p.healAuraEnd) lines.push({ txt: `Healing ${Math.ceil((p.healAuraEnd - now) / 1000)}s`, color: 'gold' });
+        if (now < p.healCooldownEnd) lines.push({ txt: `CD ${Math.ceil((p.healCooldownEnd - now) / 1000)}s`, color: 'rgba(255,255,255,.9)' });
+      }
+      if (p.role === 'NightGhost') {
+        if (now < p.domainActiveEnd) lines.push({ txt: `Domain ${Math.ceil((p.domainActiveEnd - now) / 1000)}s`, color: '#16a085' });
+        if (now < p.specialCooldownEnd) lines.push({ txt: `CD ${Math.ceil((p.specialCooldownEnd - now) / 1000)}s`, color: 'rgba(255,255,255,.9)' });
+      }
+      if (p.role === 'Swordsman') {
+        if (now < p.speedBoostEnd) lines.push({ txt: `Speed ${Math.ceil((p.speedBoostEnd - now) / 1000)}s`, color: 'orange' });
+        if (now < p.specialCooldownEnd) lines.push({ txt: `CD ${Math.ceil((p.specialCooldownEnd - now) / 1000)}s`, color: 'rgba(255,255,255,.9)' });
+      }
+      if (p.PoisonerEndTime && now < p.PoisonerEndTime) lines.push({ txt: `Poisoner ${Math.ceil((p.PoisonerEndTime - now) / 1000)}s`, color: 'darkgreen' });
+      for (let i = 0; i < lines.length; i++) {
+        const LY = y - i * 16;
+        const txt = lines[i].txt;
+        const width = ctx.measureText(txt).width + 12;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        roundRect(ctx, x - width / 2, LY - 12, width, 16, 8, true, false);
+        ctx.fillStyle = lines[i].color;
+        ctx.fillText(txt, x, LY + 2);
+      }
+    }
+
+    function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+      if (typeof stroke == 'undefined') { stroke = true; }
+      if (typeof r === 'undefined') { r = 5; }
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBackground();
+      drawPlatforms();
+      player1._frameStartX = player1.x;
+      player1._frameStartY = player1.y;
+      player2._frameStartX = player2.x;
+      player2._frameStartY = player2.y;
+      handlePlayerControls(isPlayer1 ? player1 : player2, isPlayer1 ? 'p1' : 'p2', isPlayer1 ? player2 : player1);
+      player1.update();
+      player2.update();
+      checkCollisions(player1, player2);
+      player1.draw();
+      player1.drawArrows();
+      player2.draw();
+      player2.drawArrows();
+      drawHealthBars(player1, player2);
+      drawSparks();
+      drawPowerHUD(player1);
+      drawPowerHUD(player2);
+
+      if (player1.health <= 0 || player2.health <= 0) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const boxWidth = 400;
+        const boxHeight = 140;
+        const boxX = (canvas.width - boxWidth) / 2;
+        const boxY = (canvas.height - boxHeight) / 2;
+        ctx.fillStyle = '#222';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 3;
+        roundRect(ctx, boxX, boxY, boxWidth, boxHeight, 20, true, true);
+        const winner = player1.health <= 0 ? 'PLAYER 2 WINS!' : 'PLAYER 1 WINS!';
+        ctx.fillStyle = '#f1c40f';
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(winner, canvas.width / 2, canvas.height / 2);
+        socket.emit('syncState', { roomId: currentRoomId, state: { player1, player2, slashes, sparks, nightUntil } });
+        return;
+      }
+
+      socket.emit('syncState', { roomId: currentRoomId, state: { player1, player2, slashes, sparks, nightUntil } });
+      animId = requestAnimationFrame(gameLoop);
+    }
+
+    socket.on('updateState', (state) => {
+      player1.x = state.player1.x;
+      player1.y = state.player1.y;
+      player1.velY = state.player1.velY;
+      player1.isJumping = state.player1.isJumping;
+      player1.health = state.player1.health;
+      player1.direction = state.player1.direction;
+      player1.isDefending = state.player1.isDefending;
+      player1.arrows = state.player1.arrows;
+      player1.ammo = state.player1.ammo;
+      player1.reloadEnd = state.player1.reloadEnd;
+      player1.slowEndTime = state.player1.slowEndTime;
+      player1.PoisonerEndTime = state.player1.PoisonerEndTime;
+      player1.speedBoostEnd = state.player1.speedBoostEnd;
+      player1.specialCooldownEnd = state.player1.specialCooldownEnd;
+      player1.attackCooldownEnd = state.player1.attackCooldownEnd;
+      player1.domainActiveEnd = state.player1.domainActiveEnd;
+      player1.healAuraEnd = state.player1.healAuraEnd;
+      player1.healCooldownEnd = state.player1.healCooldownEnd;
+
+      player2.x = state.player2.x;
+      player2.y = state.player2.y;
+      player2.velY = state.player2.velY;
+      player2.isJumping = state.player2.isJumping;
+      player2.health = state.player2.health;
+      player2.direction = state.player2.direction;
+      player2.isDefending = state.player2.isDefending;
+      player2.arrows = state.player2.arrows;
+      player2.ammo = state.player2.ammo;
+      player2.reloadEnd = state.player2.reloadEnd;
+      player2.slowEndTime = state.player2.slowEndTime;
+      player2.PoisonerEndTime = state.player2.PoisonerEndTime;
+      player2.speedBoostEnd = state.player2.speedBoostEnd;
+      player2.specialCooldownEnd = state.player2.specialCooldownEnd;
+      player2.attackCooldownEnd = state.player2.attackCooldownEnd;
+      player2.domainActiveEnd = state.player2.domainActiveEnd;
+      player2.healAuraEnd = state.player2.healAuraEnd;
+      player2.healCooldownEnd = state.player2.healCooldownEnd;
+
+      slashes.length = 0;
+      slashes.push(...state.slashes);
+      sparks.length = 0;
+      sparks.push(...state.sparks);
+      nightUntil = state.nightUntil;
+    });
+
+    const playBtnEl = document.getElementById('playBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    if (playBtnEl) playBtnEl.onclick = () => {
+      if (!selected.p1 || !selected.p2) { alert('Waiting for both players to select characters.'); return; }
+      startMatch(selected.p1, selected.p2);
+    };
+    if (restartBtn) restartBtn.onclick = () => { startMatch(selected.p1, selected.p2); };
+
+    show('home');
+  </script>
+</body>
+</html>
