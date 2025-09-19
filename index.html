@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Clash_Heroes_Showdown_Play v2.2 (CHSP)</title>
+  <title>Clash_Heroes_Showdown_Play v2.3 (CHSP)</title>
   <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
   <style>
     :root{--bg:#0f1226;--card:#171a37;--text:#eaf0ff;--muted:#aab8ff;--accent:#7cf2c8;--accent2:#ffd166;--danger:#ff6b6b}
@@ -16,7 +16,7 @@
     .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
     .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
     .grid.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
-    .card{background:linear-gradient(180deg, rgba(203, 14, 14, 0.05), rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.1);backdrop-filter: blur(4px);border-radius:16px;padding:16px;box-shadow:0 14px 40px rgba(0,0,0,.28)}
+    .card{background:linear-gradient(180deg, rgba(203, 14, 14, 0.05), rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(4px);border-radius:16px;padding:16px;box-shadow:0 14px 40px rgba(0,0,0,.28)}
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .spacer{height:10px}
     .btn{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);padding:12px 16px;border-radius:12px;color:var(--text);cursor:pointer;font-weight:700;letter-spacing:.4px;transition:.15s transform ease,.2s background;text-align:center}
@@ -75,7 +75,7 @@
 <body>
   <div class="wrap">
     <div class="bar">
-      <div class="title">🎮 Clash_Heroes_Showdown_Play <span class="pill">v2.2</span></div>
+      <div class="title">🎮 Clash_Heroes_Showdown_Play <span class="pill">v2.3</span></div>
       <div class="row">
         <button class="btn ghost" id="backBtn" title="Go Back">⟵ Back</button>
         <button class="btn ghost" id="homeBtn" title="Home">🏠 Home</button>
@@ -84,7 +84,7 @@
 
     <!-- HOME -->
     <section id="screen-home" class="menu active">
-      <p class="subtitle">A Multiplayer-Game created by: <span class="hl">CHSP</span>.<br>Play online with another player by creating or joining a room.<br>Flow: <strong>Home → Create/Join Room → Auto to Character Select (when both ready) → Host Starts Game → Play → Victory Screen</strong><br>(!STILL UNDER DEVELOPMENT!)<br>Contact: <span class="hl">ganguuleader@gmail.com</span></p>
+      <p class="subtitle">A Multiplayer-Game created by: <span class="hl">CHSP</span>.<br>Play online with another player by creating or joining a room.<br>Flow: <strong>Home → Create/Join Room → Auto to Character Select (when both ready) → Host Starts Game → Play → Victory Screen</strong><br>Contact: <span class="hl">ganguuleader@gmail.com</span></p>
       <div class="grid cols-2">
         <div class="card">
           <div class="title">Home</div>
@@ -279,7 +279,7 @@
     /********************
      * Socket.IO Setup  *
      ********************/
-    const socket = io('https://chsp-og.onrender.com/'); // Replace with your Socket.IO server URL
+    const socket = io('https://YOUR_RENDER_URL.onrender.com'); // Replace with your Render URL
     let currentRoomId = null;
     let playerId = null;
     let isPlayer1 = false;
@@ -313,7 +313,7 @@
           currentRoomId = roomId;
           isPlayer1 = true;
           roomIdDisplay.textContent = `Room ID: ${roomId}`;
-          roomStatus.textContent = 'Room created! Share this ID with your friend. Waiting for them to join...';
+          roomStatus.textContent = 'Room created! Share this ID with friend. Waiting...';
           updateStatus(`Room ${roomId} created. Waiting for opponent.`);
           show('main');
           lockRoomScreen();
@@ -331,7 +331,7 @@
           if (success) {
             currentRoomId = joinedRoomId;
             isPlayer1 = false;
-            joinStatus.textContent = `Joined room ${roomId}! Redirecting...`;
+            joinStatus.textContent = `Joined room ${roomId}! Waiting for opponent...`;
             updateStatus(`Joined room ${roomId}. Waiting for selections.`);
             show('main');
             lockRoomScreen();
@@ -348,10 +348,13 @@
     }
 
     socket.on('playerJoined', () => {
-      updateStatus('Opponent joined! Starting character selection...');
+      updateStatus('Opponent joined! Select your character.');
       show('vs-select');
-      renderSelectGrid(p1Grid, 'p1');
-      renderSelectGrid(p2Grid, 'p2');
+      // Ensure grids are rendered for both players
+      if (!p1Grid.innerHTML || !p2Grid.innerHTML) {
+        renderSelectGrid(p1Grid, 'p1');
+        renderSelectGrid(p2Grid, 'p2');
+      }
       updateSelections();
     });
 
@@ -379,13 +382,14 @@
     const historyStack = [];
     function show(name) {
       for (const k in screens) { screens[k].classList.remove('active'); }
-      if (name === 'stage') { screens.stage.classList.add('active'); }
-      else { screens[name].classList.add('active'); }
+      screens[name].classList.add('active');
       if (name !== 'home' && name !== 'vs-select') historyStack.push(name);
       updateBackBtn();
-      if (name === 'vsSelect') {
-        renderSelectGrid(p1Grid, 'p1');
-        renderSelectGrid(p2Grid, 'p2');
+      if (name === 'vs-select') {
+        if (!p1Grid.innerHTML || !p2Grid.innerHTML) {
+          renderSelectGrid(p1Grid, 'p1');
+          renderSelectGrid(p2Grid, 'p2');
+        }
         updateSelections();
       }
     }
@@ -396,11 +400,13 @@
     document.getElementById('homeBtn').onclick = () => {
       historyStack.length = 0;
       currentRoomId = null;
+      socket.emit('leaveRoom', currentRoomId);
       socket.disconnect();
+      socket.connect();
       show('home');
     };
     document.getElementById('backBtn').onclick = () => {
-      if (gameInProgress) return; // Prevent back during game
+      if (gameInProgress) return;
       historyStack.pop();
       const prev = historyStack[historyStack.length - 1] || 'home';
       show(prev);
@@ -447,7 +453,8 @@
     let selected = { p1: null, p2: null };
 
     function renderSelectGrid(gridEl, side) {
-      gridEl.innerHTML = '';
+      if (!gridEl) return;
+      gridEl.innerHTML = ''; // Clear to avoid duplicates
       CHARACTERS.forEach(ch => {
         const card = document.createElement('div');
         card.className = 'char-card';
@@ -459,7 +466,7 @@
             socket.emit('selectCharacter', { roomId: currentRoomId, playerId, characterId: ch.id });
             updateSelections();
           } else {
-            alert('You can only select for your side!');
+            alert(`Only ${side === 'p1' ? 'host' : 'guest'} can select for ${side.toUpperCase()}!`);
           }
         };
         gridEl.appendChild(card);
@@ -467,13 +474,17 @@
     }
 
     function updateSelections() {
-      if (p1Grid) { [...p1Grid.children].forEach(el => el.classList.toggle('selected', el.dataset.id === selected.p1)); }
-      if (p2Grid) { [...p2Grid.children].forEach(el => el.classList.toggle('selected', el.dataset.id === selected.p2)); }
+      if (p1Grid) {
+        [...p1Grid.children].forEach(el => el.classList.toggle('selected', el.dataset.id === selected.p1));
+      }
+      if (p2Grid) {
+        [...p2Grid.children].forEach(el => el.classList.toggle('selected', el.dataset.id === selected.p2));
+      }
       if (p1Label) p1Label.textContent = selected.p1 ? CHARACTERS.find(c => c.id === selected.p1)?.name || 'None' : 'None';
       if (p2Label) p2Label.textContent = selected.p2 ? CHARACTERS.find(c => c.id === selected.p2)?.name || 'None' : 'None';
       if (playBtn) {
-        playBtn.disabled = !(selected.p1 && selected.p2 && isPlayer1); // Only host can start
-        playBtn.textContent = isPlayer1 ? '▶ Start Game (Host Only)' : 'Waiting for host...';
+        playBtn.disabled = !(selected.p1 && selected.p2 && isPlayer1);
+        playBtn.textContent = isPlayer1 ? '▶ Start Game (Host Only)' : 'Waiting for Host to Start...';
       }
     }
 
@@ -485,8 +496,12 @@
 
     if (playBtn) {
       playBtn.onclick = () => {
-        if (!selected.p1 || !selected.p2 || !isPlayer1) {
-          alert('Host must wait for both selections.');
+        if (!isPlayer1) {
+          alert('Only the host can start the game!');
+          return;
+        }
+        if (!selected.p1 || !selected.p2) {
+          alert('Both players must select a character!');
           return;
         }
         socket.emit('startGame', { roomId: currentRoomId });
@@ -606,7 +621,6 @@
         this._stationary = false;
         this._activeIntervals = [];
       }
-      // ... (keep all existing Player methods: facing, currentSpeed, getAmmoCap, isReloading, isStationary, opponentWithin2Heights, draw, moveLeft, moveRight, jump, down, attack, useSpecial, update, applyFreeze, applyPoisonerOverTime, drawArrows, cleanupTimers, remaining)
       facing() { return this.direction === 1 ? '→' : '←'; }
       currentSpeed() {
         let s = (Date.now() < this.speedBoostEnd) ? this.baseSpeed * 2 : this.baseSpeed;
@@ -871,7 +885,6 @@
     }
 
     function checkCollisions(p1, p2) {
-      // Arrow vs Arrow
       for (let i = p1.arrows.length - 1; i >= 0; i--) {
         const a1 = p1.arrows[i];
         for (let j = p2.arrows.length - 1; j >= 0; j--) {
@@ -886,7 +899,6 @@
           }
         }
       }
-      // Slashes
       for (let k = slashes.length - 1; k >= 0; k--) {
         const s = slashes[k];
         const now = Date.now();
@@ -915,7 +927,6 @@
           slashes.splice(k, 1);
         }
       }
-      // p1 arrows hit p2
       for (let ai = p1.arrows.length - 1; ai >= 0; ai--) {
         const a = p1.arrows[ai];
         if (a.x < p2.x + p2.width && a.x + a.width > p2.x && a.y < p2.y + p2.height && a.y + a.height > p2.y) {
@@ -936,7 +947,6 @@
           }
         }
       }
-      // p2 arrows hit p1
       for (let ai = p2.arrows.length - 1; ai >= 0; ai--) {
         const a = p2.arrows[ai];
         if (a.x < p1.x + p1.width && a.x + a.width > p1.x && a.y < p1.y + p1.height && a.y + a.height > p1.y) {
@@ -1148,7 +1158,6 @@
 
     socket.on('updateState', (state) => {
       if (!gameInProgress) return;
-      // Sync opponent state only
       const self = isPlayer1 ? player1 : player2;
       const opp = isPlayer1 ? player2 : player1;
       opp.x = state.player2.x;
@@ -1169,7 +1178,6 @@
       opp.domainActiveEnd = state.player2.domainActiveEnd;
       opp.healAuraEnd = state.player2.healAuraEnd;
       opp.healCooldownEnd = state.player2.healCooldownEnd;
-
       slashes.length = 0;
       slashes.push(...state.slashes);
       sparks.length = 0;
@@ -1186,7 +1194,6 @@
       gameInProgress = false;
     });
 
-    // Initial route
     show('home');
   </script>
 </body>
