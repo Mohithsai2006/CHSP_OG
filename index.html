@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Clash_Heroes_Showdown_Play v2.3 (CHSP)</title>
+  <title>Clash_Heroes_Showdown_Play v2.4 (CHSP)</title>
   <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
   <style>
     :root{--bg:#0f1226;--card:#171a37;--text:#eaf0ff;--muted:#aab8ff;--accent:#7cf2c8;--accent2:#ffd166;--danger:#ff6b6b}
@@ -31,9 +31,6 @@
     .muted{color:var(--muted)}
     .char-card{display:flex;flex-direction:column;gap:10px;border-radius:14px;border:1px dashed rgba(255,255,255,.14);padding:12px;cursor:pointer;transition:.15s transform ease,.2s box-shadow}
     .char-card:hover{transform:translateY(-2px);box-shadow:0 10px 20px rgba(0,0,0,.25)}
-    .char-swatch{height:86px;border-radius:12px;border:2px solid rgba(255,255,255,.25)}
-    .char-name{font-weight:800}
-    .char-desc{color:#c7d2ff;font-size:13px}
     .char-card.selected{outline:3px solid var(--accent)}
     .two-pane{display:grid;grid-template-columns:1fr 220px 1fr;gap:16px;align-items:start}
     .divider{display:flex;align-items:center;justify-content:center}
@@ -75,7 +72,7 @@
 <body>
   <div class="wrap">
     <div class="bar">
-      <div class="title">🎮 Clash_Heroes_Showdown_Play <span class="pill">v2.3</span></div>
+      <div class="title">🎮 Clash_Heroes_Showdown_Play <span class="pill">v2.4</span></div>
       <div class="row">
         <button class="btn ghost" id="backBtn" title="Go Back">⟵ Back</button>
         <button class="btn ghost" id="homeBtn" title="Home">🏠 Home</button>
@@ -84,7 +81,7 @@
 
     <!-- HOME -->
     <section id="screen-home" class="menu active">
-      <p class="subtitle">A Multiplayer-Game created by: <span class="hl">CHSP</span>.<br>Play online with another player by creating or joining a room.<br>Flow: <strong>Home → Create/Join Room → Auto to Character Select (when both ready) → Host Starts Game → Play → Victory Screen</strong><br>Contact: <span class="hl">ganguuleader@gmail.com</span></p>
+      <p class="subtitle">A Multiplayer-Game created by: <span class="hl">CHSP</span>.<br>Play online with another player by creating or joining a room.<br>Flow: <strong>Home → Create/Join Room → Character Select (after both join) → Host Starts Game → Play → Victory Screen</strong><br>Contact: <span class="hl">ganguuleader@gmail.com</span></p>
       <div class="grid cols-2">
         <div class="card">
           <div class="title">Home</div>
@@ -279,7 +276,7 @@
     /********************
      * Socket.IO Setup  *
      ********************/
-    const socket = io('https://chsp-og.onrender.com/'); // Replace with your Render URL
+    const socket = io('https://YOUR_RENDER_URL.onrender.com'); // Replace with your Render URL
     let currentRoomId = null;
     let playerId = null;
     let isPlayer1 = false;
@@ -302,8 +299,9 @@
 
     function lockRoomScreen() {
       if (createRoomBtn) createRoomBtn.disabled = true;
-      joinRoomForm.style.display = 'none';
-      document.querySelector('#screen-room .btn.primary[type="submit"]').disabled = true;
+      if (joinRoomForm) joinRoomForm.style.display = 'none';
+      const joinBtn = document.querySelector('#screen-room .btn.primary[type="submit"]');
+      if (joinBtn) joinBtn.disabled = true;
     }
 
     if (createRoomBtn) {
@@ -326,7 +324,8 @@
         e.preventDefault();
         const roomId = joinRoomForm.roomId.value.trim().toUpperCase();
         if (!roomId) return;
-        joinRoomForm.querySelector('button[type="submit"]').disabled = true;
+        const joinBtn = joinRoomForm.querySelector('button[type="submit"]');
+        if (joinBtn) joinBtn.disabled = true;
         socket.emit('joinRoom', roomId, ({ success, message, roomId: joinedRoomId }) => {
           if (success) {
             currentRoomId = joinedRoomId;
@@ -337,7 +336,7 @@
             lockRoomScreen();
           } else {
             joinStatus.textContent = message || 'Failed to join room';
-            joinRoomForm.querySelector('button[type="submit"]').disabled = false;
+            if (joinBtn) joinBtn.disabled = false;
           }
         });
       });
@@ -347,20 +346,24 @@
       if (connectionStatus) connectionStatus.textContent = msg;
     }
 
+    let roomReady = false;
     socket.on('playerJoined', () => {
-      updateStatus('Opponent joined! Select your character.');
-      show('vs-select');
-      // Ensure grids are rendered for both players
-      if (!p1Grid.innerHTML || !p2Grid.innerHTML) {
-        renderSelectGrid(p1Grid, 'p1');
-        renderSelectGrid(p2Grid, 'p2');
+      if (!roomReady) {
+        roomReady = true;
+        updateStatus('Opponent joined! Redirecting to character selection...');
+        setTimeout(() => {
+          show('vs-select');
+          renderSelectGrid(p1Grid, 'p1');
+          renderSelectGrid(p2Grid, 'p2');
+          updateSelections();
+        }, 100); // Delay to ensure DOM is ready
       }
-      updateSelections();
     });
 
     socket.on('playerLeft', () => {
       alert('Opponent left the room. Returning to home.');
       currentRoomId = null;
+      roomReady = false;
       show('home');
       updateStatus('Disconnected from room.');
     });
@@ -381,25 +384,28 @@
     };
     const historyStack = [];
     function show(name) {
-      for (const k in screens) { screens[k].classList.remove('active'); }
-      screens[name].classList.add('active');
-      if (name !== 'home' && name !== 'vs-select') historyStack.push(name);
-      updateBackBtn();
-      if (name === 'vs-select') {
-        if (!p1Grid.innerHTML || !p2Grid.innerHTML) {
+      for (const k in screens) {
+        if (screens[k]) screens[k].classList.remove('active');
+      }
+      if (screens[name]) {
+        screens[name].classList.add('active');
+        if (name !== 'home' && name !== 'vs-select') historyStack.push(name);
+        updateBackBtn();
+        if (name === 'vs-select' && !p1Grid.innerHTML && !p2Grid.innerHTML) {
           renderSelectGrid(p1Grid, 'p1');
           renderSelectGrid(p2Grid, 'p2');
+          updateSelections();
         }
-        updateSelections();
       }
     }
-    function updateBackBtn() { 
+    function updateBackBtn() {
       const backBtn = document.getElementById('backBtn');
       if (backBtn) backBtn.disabled = historyStack.length === 0 || gameInProgress;
     }
     document.getElementById('homeBtn').onclick = () => {
       historyStack.length = 0;
       currentRoomId = null;
+      roomReady = false;
       socket.emit('leaveRoom', currentRoomId);
       socket.disconnect();
       socket.connect();
@@ -454,7 +460,7 @@
 
     function renderSelectGrid(gridEl, side) {
       if (!gridEl) return;
-      gridEl.innerHTML = ''; // Clear to avoid duplicates
+      gridEl.innerHTML = '';
       CHARACTERS.forEach(ch => {
         const card = document.createElement('div');
         card.className = 'char-card';
@@ -463,7 +469,7 @@
         card.onclick = () => {
           if ((side === 'p1' && isPlayer1) || (side === 'p2' && !isPlayer1)) {
             selected[side] = ch.id;
-            socket.emit('selectCharacter', { roomId: currentRoomId, playerId, characterId: ch.id });
+            socket.emit('selectCharacter', { roomId: currentRoomId, playerId, characterId: ch.id, side });
             updateSelections();
           } else {
             alert(`Only ${side === 'p1' ? 'host' : 'guest'} can select for ${side.toUpperCase()}!`);
@@ -504,7 +510,7 @@
           alert('Both players must select a character!');
           return;
         }
-        socket.emit('startGame', { roomId: currentRoomId });
+        socket.emit('startGame', { roomId: currentRoomId, p1: selected.p1, p2: selected.p2 });
       };
     }
 
