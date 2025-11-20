@@ -1,0 +1,105 @@
+-->First we have to save key value pair .pam file in desktop in AWS folder
+-->open cmd in this directory
+-->now paste the ssh key which was copied from aws instance and click enter
+then run following commands
+-->sudo apt update
+-->sudo apt-get install docker.io
+-->sudo apt install git
+-->sudo apt install nano
+now in desktop create a folder Example in that create simple index.html  with any <h> and <p> tags
+push the index.html to git 
+After pushing clone the repo url
+
+Run the following commands
+-->git clone url
+-->ls
+you can see ur repo directory 
+-->cd yourdir
+-->ls
+you will see index.html
+-->nano Dockerfile
+then paste the following to dockerfile
+FROM nginx:alpine
+COPY . /usr/share/nginx/html
+-->press ctrl+o and enter then ctrl+x to exit
+-->sudo  docker build -t myweb .
+-->sudo  docker run -d -p 80:80 myweb
+then click public ipv4 in the instance go and access in browser...
+
+
+
+
+
+1)Kubernetes
+(docker on lo pettu)
+
+
+
+
+kubectl version --client
+minikube start
+
+
+kubectl create deployment mynginx --image=nginx
+
+if already created then 
+kubectl set image deployment/myngnix nginx=nginx:latest
+
+kubectl get deployments
+
+Check the following commands:
+kubectl get pods
+kubectl describe pods
+
+
+kubectl expose deployment mynginx --type=NodePort --port=80 --target-port=80
+
+
+kubectl scale deployment mynginx --replicas=4
+kubectl get service myngnix
+
+kubectl port-forward svc/mynginx 8081:80
+Access the app via http://localhost:8081.
+
+
+If Error, use this option, Using Minikube Tunnel:
+o	Start the tunnel:
+minikube tunnel
+o	Retrieve the service URL:
+minikube service mynginx --url
+o	Open the provided URL in your browser.
+
+
+Minikube dashboard
+
+kubectl delete deployment mynginx
+kubectl delete service mynginx
+
+minikube stop
+
+minikube delete
+
+
+
+
+
+2)Nagios(docker on lo pettu)
+
+
+docker pull jasonrivers/nagios:latest
+docker run --name nagiosdemo -p 8888:80 jasonrivers/nagios:latest
+
+Open your browser and navigate to:
+http://localhost:8888
+o	Login Credentials:
+	Username: nagiosadmin
+	Password: nagios
+
+
+docker stop nagiosdemo
+
+docker rm nagiosdemo
+
+docker images
+
+docker rmi jasonrivers/nagios:latest
